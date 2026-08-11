@@ -12,7 +12,11 @@ if (process.env.DATABASE_URL) {
   });
 }
 
-const LOCAL_DB_FILE = path.join(process.cwd(), 'local-db.json');
+// Serverless environments (Netlify, Vercel, AWS Lambda) have read-only /var/task filesystem.
+// We fall back to writable /tmp directory when running in serverless production without PostgreSQL.
+const isServerless = process.env.NETLIFY === 'true' || process.env.VERCEL === '1' || process.env.AWS_LAMBDA_FUNCTION_NAME !== undefined || process.env.NODE_ENV === 'production';
+const LOCAL_DB_FILE = isServerless ? path.join('/tmp', 'local-db.json') : path.join(process.cwd(), 'local-db.json');
+const ROOT_SEED_FILE = path.join(process.cwd(), 'local-db.json');
 
 export type FieldMode = 'STRICT' | 'FREE';
 
@@ -98,14 +102,27 @@ const INITIAL_CATALOG_SEEDS: CatalogItem[] = [
 
 function getLocalDB(): LocalDBData {
   if (!fs.existsSync(LOCAL_DB_FILE)) {
-    const initial: LocalDBData = {
+    let initial: LocalDBData = {
       users: [],
       passwords: {},
       catalogs: INITIAL_CATALOG_SEEDS,
       fieldConfigs: DEFAULT_FIELD_CONFIGS,
       links: [],
     };
-    fs.writeFileSync(LOCAL_DB_FILE, JSON.stringify(initial, null, 2));
+
+    // If root seed file exists in project, copy from root seed file
+    if (fs.existsSync(ROOT_SEED_FILE) && ROOT_SEED_FILE !== LOCAL_DB_FILE) {
+      try {
+        const raw = fs.readFileSync(ROOT_SEED_FILE, 'utf8');
+        initial = JSON.parse(raw);
+      } catch {}
+    }
+
+    try {
+      fs.writeFileSync(LOCAL_DB_FILE, JSON.stringify(initial, null, 2));
+    } catch (e) {
+      console.warn('Could not write local db file:', e);
+    }
     return initial;
   }
   try {
@@ -132,7 +149,9 @@ function getLocalDB(): LocalDBData {
       updated = true;
     }
     if (updated) {
-      fs.writeFileSync(LOCAL_DB_FILE, JSON.stringify(db, null, 2));
+      try {
+        fs.writeFileSync(LOCAL_DB_FILE, JSON.stringify(db, null, 2));
+      } catch {}
     }
     return db;
   } catch {
@@ -141,7 +160,11 @@ function getLocalDB(): LocalDBData {
 }
 
 function saveLocalDB(data: LocalDBData) {
-  fs.writeFileSync(LOCAL_DB_FILE, JSON.stringify(data, null, 2));
+  try {
+    fs.writeFileSync(LOCAL_DB_FILE, JSON.stringify(data, null, 2));
+  } catch (e) {
+    console.error('Failed to write to local DB file:', e);
+  }
 }
 
 // Map alias categories (e.g. utm_source -> source, media_source -> source)
