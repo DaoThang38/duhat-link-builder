@@ -1,0 +1,549 @@
+{
+  "users": [
+    {
+      "id": "302e353239363835",
+      "email": "demo@duhat.local",
+      "fullName": "Đào Tất Thắng",
+      "role": "ADMIN",
+      "createdAt": "2026-08-11T10:04:26.444Z"
+    }
+  ],
+  "passwords": {
+    "302e353239363835": "$2a$10$990pf8.2OBJx1jkYwRB8keT7jVzQvggFHRE/pKT2Q7Jk2Co4ui2Du"
+  },
+  "catalogs": [
+    {
+      "id": "c1",
+      "categoryType": "source",
+      "value": "google",
+      "description": "Google Search/Display dẫn về website hoặc landing page",
+      "isStrict": false,
+      "usageCount": 10,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c2",
+      "categoryType": "source",
+      "value": "facebook",
+      "description": "Bài đăng hoặc quảng cáo Facebook Ads dẫn về website",
+      "isStrict": false,
+      "usageCount": 9,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c3",
+      "categoryType": "source",
+      "value": "meta",
+      "description": "Tên nhận diện chung cho Instagram / Facebook / Threads Meta",
+      "isStrict": false,
+      "usageCount": 8,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c4",
+      "categoryType": "source",
+      "value": "tiktok",
+      "description": "Quảng cáo TikTok Ads, Bio link hoặc bài đăng TikTok",
+      "isStrict": false,
+      "usageCount": 7,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c5",
+      "categoryType": "source",
+      "value": "zalo",
+      "description": "Zalo Official Account, bài đăng Zalo Feed hoặc tin nhắn OA",
+      "isStrict": false,
+      "usageCount": 7,
+      "lastUsedAt": "2026-08-11T11:03:53.914Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c6",
+      "categoryType": "source",
+      "value": "email",
+      "description": "Chiến dịch Email Marketing thông thường gửi cho khách hàng",
+      "isStrict": false,
+      "usageCount": 5,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c7",
+      "categoryType": "source",
+      "value": "owned_email",
+      "description": "Nguồn email tự sở hữu (Newsletter/Transactional) dùng cho OneLink",
+      "isStrict": false,
+      "usageCount": 4,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c8",
+      "categoryType": "source",
+      "value": "sms",
+      "description": "Tin nhắn SMS Brandname hoặc SMS OTP/Marketing",
+      "isStrict": false,
+      "usageCount": 3,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c9",
+      "categoryType": "source",
+      "value": "qr",
+      "description": "Mã QR in trên tài liệu, standee, voucher hoặc sự kiện offline",
+      "isStrict": false,
+      "usageCount": 3,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c10",
+      "categoryType": "source",
+      "value": "website",
+      "description": "Nút CTA, banner hoặc bài viết trên chính trang web công ty",
+      "isStrict": false,
+      "usageCount": 2,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c11",
+      "categoryType": "source",
+      "value": "partner",
+      "description": "Kênh đối tác truyền thông / liên kết hợp tác",
+      "isStrict": false,
+      "usageCount": 2,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c12",
+      "categoryType": "source",
+      "value": "influencer",
+      "description": "KOL / KOC / Content Creator giới thiệu sản phẩm",
+      "isStrict": false,
+      "usageCount": 1,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c13",
+      "categoryType": "medium",
+      "value": "organic_social",
+      "description": "Bài đăng truyền thông tự nhiên trên Mạng Xã Hội (Không trả phí)",
+      "isStrict": false,
+      "usageCount": 10,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c14",
+      "categoryType": "medium",
+      "value": "paid_social",
+      "description": "Quảng cáo trả phí trên Mạng Xã Hội (FB/TikTok/Insta Ads)",
+      "isStrict": false,
+      "usageCount": 9,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c15",
+      "categoryType": "medium",
+      "value": "cpc",
+      "description": "Quảng cáo tìm kiếm trả phí theo lượt nhấp (Google Search Ads)",
+      "isStrict": false,
+      "usageCount": 9,
+      "lastUsedAt": "2026-08-11T11:03:53.924Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c16",
+      "categoryType": "medium",
+      "value": "email",
+      "description": "Kênh tiếp thị qua thư điện tử Email",
+      "isStrict": false,
+      "usageCount": 7,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c17",
+      "categoryType": "medium",
+      "value": "sms",
+      "description": "Kênh tiếp thị qua tin nhắn điện thoại SMS",
+      "isStrict": false,
+      "usageCount": 6,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c18",
+      "categoryType": "medium",
+      "value": "qr",
+      "description": "Kênh tiếp thị chuyển đổi qua mã QR Code",
+      "isStrict": false,
+      "usageCount": 5,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c19",
+      "categoryType": "medium",
+      "value": "referral",
+      "description": "Kênh tiếp thị giới thiệu từ website/đối tác bên ngoài",
+      "isStrict": false,
+      "usageCount": 4,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c20",
+      "categoryType": "medium",
+      "value": "web_banner",
+      "description": "Banner quảng cáo hoặc nút CTA trên website",
+      "isStrict": false,
+      "usageCount": 3,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c21",
+      "categoryType": "medium",
+      "value": "push",
+      "description": "Notification đẩy qua ứng dụng di động hoặc Web Push",
+      "isStrict": false,
+      "usageCount": 2,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c22",
+      "categoryType": "medium",
+      "value": "offline",
+      "description": "Ấn phẩm in ấn, sự kiện, tờ rơi hoặc biển bảng offline",
+      "isStrict": false,
+      "usageCount": 1,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c23",
+      "categoryType": "deep_link_screen",
+      "value": "home",
+      "description": "Màn hình trang chủ ứng dụng (Default Home Screen)",
+      "isStrict": false,
+      "usageCount": 10,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c24",
+      "categoryType": "deep_link_screen",
+      "value": "create_poll",
+      "description": "Màn hình tạo cuộc khảo sát / Poll mới",
+      "isStrict": false,
+      "usageCount": 9,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c25",
+      "categoryType": "deep_link_screen",
+      "value": "poll_detail",
+      "description": "Màn hình xem chi tiết kết quả Poll (cần truyền deep_link_sub/id)",
+      "isStrict": false,
+      "usageCount": 8,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c26",
+      "categoryType": "deep_link_screen",
+      "value": "profile",
+      "description": "Màn hình trang cá nhân / Hồ sơ người dùng",
+      "isStrict": false,
+      "usageCount": 7,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c27",
+      "categoryType": "deep_link_screen",
+      "value": "notification",
+      "description": "Màn hình trung tâm thông báo của ứng dụng",
+      "isStrict": false,
+      "usageCount": 6,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c28",
+      "categoryType": "deep_link_screen",
+      "value": "subscription",
+      "description": "Màn hình nâng cấp / Mua gói dịch vụ Premium",
+      "isStrict": false,
+      "usageCount": 5,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c29",
+      "categoryType": "deep_link_screen",
+      "value": "login",
+      "description": "Màn hình điều hướng đăng nhập tài khoản",
+      "isStrict": false,
+      "usageCount": 4,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c30",
+      "categoryType": "deep_link_screen",
+      "value": "register",
+      "description": "Màn hình điều hướng đăng ký tài khoản mới",
+      "isStrict": false,
+      "usageCount": 3,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c31",
+      "categoryType": "deep_link_screen",
+      "value": "other",
+      "description": "Màn hình tùy chỉnh khác (cần Product/Kỹ thuật xác nhận)",
+      "isStrict": false,
+      "usageCount": 1,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c32",
+      "categoryType": "content",
+      "value": "banner_hero",
+      "description": "Banner ảnh chính đầu trang (Hero Banner)",
+      "isStrict": false,
+      "usageCount": 8,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c33",
+      "categoryType": "content",
+      "value": "banner_sidebar",
+      "description": "Banner quảng cáo cột bên (Sidebar Banner)",
+      "isStrict": false,
+      "usageCount": 6,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c34",
+      "categoryType": "content",
+      "value": "video_review_15s",
+      "description": "Video ngắn 15s đánh giá sản phẩm / Dịch vụ",
+      "isStrict": false,
+      "usageCount": 9,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c35",
+      "categoryType": "content",
+      "value": "video_tutorial_30s",
+      "description": "Video hướng dẫn sử dụng sản phẩm 30 giây",
+      "isStrict": false,
+      "usageCount": 5,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c36",
+      "categoryType": "content",
+      "value": "carousel_image",
+      "description": "Mẫu quảng cáo xoay vòng nhiều ảnh (Carousel Ads)",
+      "isStrict": false,
+      "usageCount": 7,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c37",
+      "categoryType": "content",
+      "value": "cta_button_bottom",
+      "description": "Nút kêu gọi hành động đặt ở chân trang",
+      "isStrict": false,
+      "usageCount": 4,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c38",
+      "categoryType": "content",
+      "value": "story_interactive",
+      "description": "Mẫu tin quảng cáo tương tác trên Instagram/Facebook Story",
+      "isStrict": false,
+      "usageCount": 3,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c39",
+      "categoryType": "ad_set",
+      "value": "target_genz_18_24",
+      "description": "Nhóm mục tiêu độ tuổi GenZ từ 18-24 tuổi",
+      "isStrict": false,
+      "usageCount": 8,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c40",
+      "categoryType": "ad_set",
+      "value": "target_office_25_34",
+      "description": "Nhóm mục tiêu dân văn phòng độ tuổi 25-34 tuổi",
+      "isStrict": false,
+      "usageCount": 9,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c41",
+      "categoryType": "ad_set",
+      "value": "retargeting_visited_30d",
+      "description": "Nhóm tiếp thị lại người đã vào web trong 30 ngày",
+      "isStrict": false,
+      "usageCount": 10,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c42",
+      "categoryType": "ad_set",
+      "value": "lookalike_purchasers_1pct",
+      "description": "Nhóm đối tượng tương tự 1% người đã mua hàng",
+      "isStrict": false,
+      "usageCount": 6,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c43",
+      "categoryType": "campaign",
+      "value": "tet_sale_2026",
+      "description": "Chiến dịch khuyến mãi Tết 2026",
+      "isStrict": false,
+      "usageCount": 10,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c44",
+      "categoryType": "campaign",
+      "value": "summer_growth_2026",
+      "description": "Chiến dịch bứt phá tăng trưởng mùa hè 2026",
+      "isStrict": false,
+      "usageCount": 8,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c45",
+      "categoryType": "campaign",
+      "value": "app_launch_v2",
+      "description": "Chiến dịch ra mắt phiên bản App 2.0",
+      "isStrict": false,
+      "usageCount": 10,
+      "lastUsedAt": "2026-08-11T11:03:53.937Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c46",
+      "categoryType": "campaign",
+      "value": "reengagement_q3",
+      "description": "Chiến dịch kích hoạt lại người dùng cũ Quý 3",
+      "isStrict": false,
+      "usageCount": 5,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c47",
+      "categoryType": "campaign_id",
+      "value": "cmp_tet2026_01",
+      "description": "ID định danh chiến dịch Tết 2026",
+      "isStrict": false,
+      "usageCount": 7,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c48",
+      "categoryType": "campaign_id",
+      "value": "cmp_appv2_02",
+      "description": "ID định danh chiến dịch App V2",
+      "isStrict": false,
+      "usageCount": 6,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c49",
+      "categoryType": "keyword",
+      "value": "khao_sat_truc_tuyen",
+      "description": "Từ khóa tìm kiếm \"Khảo sát trực tuyến\"",
+      "isStrict": false,
+      "usageCount": 8,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    },
+    {
+      "id": "c50",
+      "categoryType": "keyword",
+      "value": "tao_poll_nhanh",
+      "description": "Từ khóa tìm kiếm \"Tạo poll nhanh\"",
+      "isStrict": false,
+      "usageCount": 7,
+      "lastUsedAt": "2026-08-11T10:26:06.766Z",
+      "linkType": "BOTH"
+    }
+  ],
+  "links": [
+    {
+      "linkType": "UTM",
+      "originalUrl": "https://duhat.vn/",
+      "finalLink": "https://duhat.vn/?utm_source=zalo&utm_medium=cpc&utm_campaign=app_launch_v2",
+      "linkHash": "c0984bfd8869638344e3bee20ed0bcdc0cef182489773e2f3639db91eea2601e",
+      "utmSource": "zalo",
+      "utmMedium": "cpc",
+      "utmCampaign": "app_launch_v2",
+      "utmId": "",
+      "utmContent": "",
+      "utmTerm": "",
+      "isRetargeting": false,
+      "createdByUserId": "302e353239363835",
+      "createdByName": "Đào Tất Thắng",
+      "createdByEmail": "demo@duhat.local",
+      "syncStatus": "FAILED",
+      "syncAttempts": 1,
+      "id": "302e323936313836",
+      "createdAt": "2026-08-11T11:03:53.966Z",
+      "lastSyncError": "Chưa cấu hình POWER_AUTOMATE_WEBHOOK_URL trong biến môi trường."
+    }
+  ],
+  "fieldConfigs": {
+    "source": "FREE",
+    "medium": "FREE",
+    "deep_link_screen": "FREE",
+    "campaign": "FREE",
+    "content": "FREE",
+    "ad_set": "FREE",
+    "campaign_id": "FREE",
+    "keyword": "FREE"
+  }
+}

@@ -1,0 +1,258 @@
+@import "tailwindcss";
+
+:root {
+  --yellow-500: #ffcc00;
+  --yellow-300: #ffe27a;
+  --yellow-100: #fff3bd;
+  --yellow-50: #fff9df;
+  --ink-900: #20201c;
+  --ink-700: #45453f;
+  --ink-500: #71716a;
+  --ink-300: #aaa9a0;
+  --paper: #f9f9f6;
+  --white: #ffffff;
+  --line: #deded7;
+  --green-700: #176b46;
+  --green-100: #eaf8ef;
+  --red-700: #b42318;
+  --red-100: #fff0ed;
+  --amber-700: #8a6200;
+  --amber-100: #fff4d1;
+  --r-xs: 8px;
+  --r-sm: 12px;
+  --r-md: 18px;
+  --r-lg: 28px;
+  --r-pill: 999px;
+  --shadow-card: 0 18px 55px rgba(32,32,28,.10);
+  --shadow-float: 0 16px 36px rgba(32,32,28,.16);
+}
+
+body {
+  margin: 0;
+  color: var(--ink-900);
+  background: var(--paper);
+  font-family: "Segoe UI", Arial, sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Duhat Design System Button Classes */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 50px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: var(--r-pill);
+  font-weight: 850;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+}
+
+.btn.primary {
+  color: #ffffff;
+  background: var(--ink-900);
+}
+.btn.primary:hover {
+  background: #000000;
+  transform: translateY(-1px);
+}
+.btn.primary span.arrow {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  color: var(--ink-900);
+  background: var(--yellow-500);
+  border-radius: 50%;
+  font-size: 14px;
+}
+
+.btn.yellow {
+  color: var(--ink-900);
+  background: var(--yellow-500);
+}
+.btn.yellow:hover {
+  background: #ebd217;
+  transform: translateY(-1px);
+}
+
+.btn.secondary {
+  color: var(--ink-900);
+  background: #ffffff;
+  border: 1px solid var(--line);
+}
+.btn.secondary:hover {
+  background: var(--paper);
+}
+
+.btn.ghost {
+  color: var(--ink-500);
+  background: transparent;
+}
+.btn.ghost:hover {
+  color: var(--ink-900);
+  background: rgba(32, 32, 28, 0.05);
+}
+
+.btn.danger {
+  color: var(--red-700);
+  background: var(--red-100);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+  transform: none !important;
+}
+
+/* Duhat Segmented Tabs */
+.tabs {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: #e9e9e4;
+  border-radius: var(--r-pill);
+}
+
+.tab {
+  min-width: 138px;
+  padding: 12px 20px;
+  color: var(--ink-700);
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-pill);
+  font-weight: 850;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab.active {
+  color: #ffffff;
+  background: var(--ink-900);
+  box-shadow: 0 7px 18px rgba(32, 32, 28, 0.18);
+}
+
+/* Duhat Form Fields */
+.duhat-field label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 850;
+  color: var(--ink-900);
+}
+
+.duhat-field .req {
+  color: var(--red-700);
+}
+
+.duhat-field input,
+.duhat-field select,
+.duhat-field textarea {
+  width: 100%;
+  height: 52px;
+  padding: 0 16px;
+  color: var(--ink-900);
+  background: #ffffff;
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-sm);
+  font-size: 14px;
+  transition: all 0.15s ease;
+}
+
+.duhat-field input:focus,
+.duhat-field select:focus {
+  border-color: var(--ink-900);
+  box-shadow: 0 0 0 4px rgba(255, 204, 0, 0.25);
+  outline: 0;
+}
+
+.duhat-field input.error {
+  border-color: var(--red-700);
+  background: var(--red-100);
+}
+
+.duhat-help {
+  margin: 7px 0 0;
+  color: var(--ink-500);
+  font-size: 12px;
+}
+
+.duhat-help.error {
+  color: var(--red-700);
+  font-weight: 700;
+}
+
+.mode-badge {
+  margin-left: 6px;
+  padding: 2px 8px;
+  color: #725000;
+  background: var(--yellow-100);
+  border-radius: var(--r-pill);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+/* Duhat Badges */
+.duhat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: var(--r-pill);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.duhat-badge::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  content: "";
+}
+
+.duhat-badge.synced {
+  color: var(--green-700);
+  background: var(--green-100);
+}
+.duhat-badge.synced::before {
+  background: var(--green-700);
+}
+
+.duhat-badge.pending {
+  color: var(--amber-700);
+  background: var(--yellow-100);
+}
+.duhat-badge.pending::before {
+  background: var(--amber-700);
+}
+
+.duhat-badge.failed {
+  color: var(--red-700);
+  background: var(--red-100);
+}
+.duhat-badge.failed::before {
+  background: var(--red-700);
+}
+
+.duhat-badge.neutral {
+  color: var(--ink-700);
+  background: #eeeeee;
+}
+.duhat-badge.neutral::before {
+  background: var(--ink-500);
+}
+
+/* Cards & Layout */
+.duhat-card {
+  padding: 28px;
+  background: var(--white);
+  border: 1px solid rgba(32, 32, 28, 0.10);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-card);
+}

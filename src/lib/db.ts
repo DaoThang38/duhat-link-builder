@@ -1,0 +1,647 @@
+import { Pool } from 'pg';
+import { User, LinkRecord, CatalogItem } from '@/types';
+import fs from 'fs';
+import path from 'path';
+
+let pool: Pool | null = null;
+
+if (process.env.DATABASE_URL) {
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  });
+}
+
+const LOCAL_DB_FILE = path.join(process.cwd(), 'local-db.json');
+
+export type FieldMode = 'STRICT' | 'FREE';
+
+interface LocalDBData {
+  users: User[];
+  passwords: Record<string, string>;
+  catalogs: CatalogItem[];
+  fieldConfigs: Record<string, FieldMode>;
+  links: LinkRecord[];
+}
+
+const DEFAULT_FIELD_CONFIGS: Record<string, FieldMode> = {
+  source: 'FREE',
+  medium: 'FREE',
+  deep_link_screen: 'STRICT',
+  campaign: 'FREE',
+  content: 'FREE',
+  ad_set: 'FREE',
+  campaign_id: 'FREE',
+  keyword: 'FREE',
+};
+
+const INITIAL_CATALOG_SEEDS: CatalogItem[] = [
+  // 1. NGUỒN (SOURCE)
+  { id: 'c1', linkType: 'BOTH', categoryType: 'source', value: 'google', description: 'Google Search/Display dẫn về website', isStrict: false, usageCount: 10, lastUsedAt: new Date().toISOString() },
+  { id: 'c2', linkType: 'BOTH', categoryType: 'source', value: 'facebook', description: 'Bài đăng hoặc quảng cáo dẫn về website', isStrict: false, usageCount: 9, lastUsedAt: new Date().toISOString() },
+  { id: 'c3', linkType: 'BOTH', categoryType: 'source', value: 'meta', description: 'Tên nội bộ khi cần phân biệt Meta', isStrict: false, usageCount: 8, lastUsedAt: new Date().toISOString() },
+  { id: 'c4', linkType: 'BOTH', categoryType: 'source', value: 'tiktok', description: 'TikTok dẫn về website hoặc owned post', isStrict: false, usageCount: 7, lastUsedAt: new Date().toISOString() },
+  { id: 'c5', linkType: 'BOTH', categoryType: 'source', value: 'zalo', description: 'Zalo OA, bài đăng hoặc tin nhắn', isStrict: false, usageCount: 6, lastUsedAt: new Date().toISOString() },
+  { id: 'c6', linkType: 'BOTH', categoryType: 'source', value: 'email', description: 'Email thông thường', isStrict: false, usageCount: 5, lastUsedAt: new Date().toISOString() },
+  { id: 'c7', linkType: 'BOTH', categoryType: 'source', value: 'owned_email', description: 'Nguồn email tự sở hữu dùng cho OneLink', isStrict: false, usageCount: 4, lastUsedAt: new Date().toISOString() },
+  { id: 'c8', linkType: 'BOTH', categoryType: 'source', value: 'sms', description: 'Tin nhắn SMS', isStrict: false, usageCount: 3, lastUsedAt: new Date().toISOString() },
+  { id: 'c9', linkType: 'BOTH', categoryType: 'source', value: 'qr', description: 'Mã QR trên tài liệu/sự kiện', isStrict: false, usageCount: 3, lastUsedAt: new Date().toISOString() },
+  { id: 'c10', linkType: 'BOTH', categoryType: 'source', value: 'website', description: 'CTA hoặc banner trên website', isStrict: false, usageCount: 2, lastUsedAt: new Date().toISOString() },
+  { id: 'c11', linkType: 'BOTH', categoryType: 'source', value: 'partner', description: 'Đối tác', isStrict: false, usageCount: 2, lastUsedAt: new Date().toISOString() },
+  { id: 'c12', linkType: 'BOTH', categoryType: 'source', value: 'influencer', description: 'KOL/KOC/creator', isStrict: false, usageCount: 1, lastUsedAt: new Date().toISOString() },
+
+  // 2. KÊNH (MEDIUM)
+  { id: 'c13', linkType: 'BOTH', categoryType: 'medium', value: 'organic_social', description: 'Bài đăng mạng xã hội không trả phí', isStrict: false, usageCount: 10, lastUsedAt: new Date().toISOString() },
+  { id: 'c14', linkType: 'BOTH', categoryType: 'medium', value: 'paid_social', description: 'Quảng cáo mạng xã hội', isStrict: false, usageCount: 9, lastUsedAt: new Date().toISOString() },
+  { id: 'c15', linkType: 'BOTH', categoryType: 'medium', value: 'cpc', description: 'Quảng cáo trả phí theo click', isStrict: false, usageCount: 8, lastUsedAt: new Date().toISOString() },
+  { id: 'c16', linkType: 'BOTH', categoryType: 'medium', value: 'email', description: 'Email', isStrict: false, usageCount: 7, lastUsedAt: new Date().toISOString() },
+  { id: 'c17', linkType: 'BOTH', categoryType: 'medium', value: 'sms', description: 'SMS', isStrict: false, usageCount: 6, lastUsedAt: new Date().toISOString() },
+  { id: 'c18', linkType: 'BOTH', categoryType: 'medium', value: 'qr', description: 'QR code', isStrict: false, usageCount: 5, lastUsedAt: new Date().toISOString() },
+  { id: 'c19', linkType: 'BOTH', categoryType: 'medium', value: 'referral', description: 'Đối tác/giới thiệu', isStrict: false, usageCount: 4, lastUsedAt: new Date().toISOString() },
+  { id: 'c20', linkType: 'BOTH', categoryType: 'medium', value: 'web_banner', description: 'Banner/CTA trên website', isStrict: false, usageCount: 3, lastUsedAt: new Date().toISOString() },
+  { id: 'c21', linkType: 'BOTH', categoryType: 'medium', value: 'push', description: 'Push notification', isStrict: false, usageCount: 2, lastUsedAt: new Date().toISOString() },
+  { id: 'c22', linkType: 'BOTH', categoryType: 'medium', value: 'offline', description: 'Ấn phẩm hoặc sự kiện offline', isStrict: false, usageCount: 1, lastUsedAt: new Date().toISOString() },
+
+  // 3. MÀN HÌNH APP (DEEP_LINK_SCREEN)
+  { id: 'c23', linkType: 'ONELINK', categoryType: 'deep_link_screen', value: 'home', description: 'Trang chủ', isStrict: true, usageCount: 10, lastUsedAt: new Date().toISOString() },
+  { id: 'c24', linkType: 'ONELINK', categoryType: 'deep_link_screen', value: 'create_poll', description: 'Màn hình tạo poll', isStrict: true, usageCount: 9, lastUsedAt: new Date().toISOString() },
+  { id: 'c25', linkType: 'ONELINK', categoryType: 'deep_link_screen', value: 'poll_detail', description: 'Chi tiết poll; có thể cần deep_link_sub', isStrict: true, usageCount: 8, lastUsedAt: new Date().toISOString() },
+  { id: 'c26', linkType: 'ONELINK', categoryType: 'deep_link_screen', value: 'profile', description: 'Hồ sơ người dùng', isStrict: true, usageCount: 7, lastUsedAt: new Date().toISOString() },
+  { id: 'c27', linkType: 'ONELINK', categoryType: 'deep_link_screen', value: 'notification', description: 'Trung tâm thông báo', isStrict: true, usageCount: 6, lastUsedAt: new Date().toISOString() },
+  { id: 'c28', linkType: 'ONELINK', categoryType: 'deep_link_screen', value: 'subscription', description: 'Màn hình gói dịch vụ', isStrict: true, usageCount: 5, lastUsedAt: new Date().toISOString() },
+  { id: 'c29', linkType: 'ONELINK', categoryType: 'deep_link_screen', value: 'login', description: 'Đăng nhập', isStrict: true, usageCount: 4, lastUsedAt: new Date().toISOString() },
+  { id: 'c30', linkType: 'ONELINK', categoryType: 'deep_link_screen', value: 'register', description: 'Đăng ký', isStrict: true, usageCount: 3, lastUsedAt: new Date().toISOString() },
+  { id: 'c31', linkType: 'ONELINK', categoryType: 'deep_link_screen', value: 'other', description: 'Chỉ dùng sau khi Product/Kỹ thuật xác nhận', isStrict: true, usageCount: 1, lastUsedAt: new Date().toISOString() },
+
+  // 4. TÊN CHIẾN DỊCH (CAMPAIGN)
+  { id: 'c32', linkType: 'BOTH', categoryType: 'campaign', value: 'poll_activation_202608', description: 'Kích hoạt trải nghiệm tính năng poll', isStrict: false, usageCount: 10, lastUsedAt: new Date().toISOString() },
+  { id: 'c33', linkType: 'BOTH', categoryType: 'campaign', value: 'tet_sale_2026', description: 'Chiến dịch ưu đãi dịp Tết 2026', isStrict: false, usageCount: 9, lastUsedAt: new Date().toISOString() },
+  { id: 'c34', linkType: 'BOTH', categoryType: 'campaign', value: 'summer_growth_2026', description: 'Tăng trưởng mùa hè 2026', isStrict: false, usageCount: 8, lastUsedAt: new Date().toISOString() },
+  { id: 'c35', linkType: 'BOTH', categoryType: 'campaign', value: 'app_launch_v2', description: 'Ra mắt phiên bản ứng dụng 2.0', isStrict: false, usageCount: 7, lastUsedAt: new Date().toISOString() },
+
+  // 5. LOẠI NỘI DUNG / MẪU QC (CONTENT / AD_NAME)
+  { id: 'c36', linkType: 'BOTH', categoryType: 'content', value: 'banner_hero', description: 'Banner ảnh chính đầu trang', isStrict: false, usageCount: 8, lastUsedAt: new Date().toISOString() },
+  { id: 'c37', linkType: 'BOTH', categoryType: 'content', value: 'video_review_15s', description: 'Video review ngắn 15s', isStrict: false, usageCount: 9, lastUsedAt: new Date().toISOString() },
+  { id: 'c38', linkType: 'BOTH', categoryType: 'content', value: 'carousel_image', description: 'Mẫu quảng cáo xoay vòng', isStrict: false, usageCount: 7, lastUsedAt: new Date().toISOString() },
+
+  // 6. NHÓM QUẢNG CÁO (AD_SET)
+  { id: 'c39', linkType: 'BOTH', categoryType: 'ad_set', value: 'target_genz_18_24', description: 'Đối tượng GenZ 18-24 tuổi', isStrict: false, usageCount: 8, lastUsedAt: new Date().toISOString() },
+  { id: 'c40', linkType: 'BOTH', categoryType: 'ad_set', value: 'target_office_25_34', description: 'Đối tượng dân văn phòng 25-34 tuổi', isStrict: false, usageCount: 9, lastUsedAt: new Date().toISOString() },
+  { id: 'c41', linkType: 'BOTH', categoryType: 'ad_set', value: 'retargeting_30d', description: 'Tiếp thị lại người dùng trong 30 ngày', isStrict: false, usageCount: 10, lastUsedAt: new Date().toISOString() },
+
+  // 7. ID CHIẾN DỊCH (CAMPAIGN_ID)
+  { id: 'c42', linkType: 'BOTH', categoryType: 'campaign_id', value: 'cmp_poll2026_01', description: 'ID định danh chiến dịch Poll 2026', isStrict: false, usageCount: 7, lastUsedAt: new Date().toISOString() },
+
+  // 8. TỪ KHÓA (KEYWORD)
+  { id: 'c43', linkType: 'BOTH', categoryType: 'keyword', value: 'khao_sat_truc_tuyen', description: 'Từ khóa tìm kiếm khảo sát trực tuyến', isStrict: false, usageCount: 8, lastUsedAt: new Date().toISOString() },
+];
+
+function getLocalDB(): LocalDBData {
+  if (!fs.existsSync(LOCAL_DB_FILE)) {
+    const initial: LocalDBData = {
+      users: [],
+      passwords: {},
+      catalogs: INITIAL_CATALOG_SEEDS,
+      fieldConfigs: DEFAULT_FIELD_CONFIGS,
+      links: [],
+    };
+    fs.writeFileSync(LOCAL_DB_FILE, JSON.stringify(initial, null, 2));
+    return initial;
+  }
+  try {
+    const raw = fs.readFileSync(LOCAL_DB_FILE, 'utf8');
+    const db = JSON.parse(raw);
+    let updated = false;
+
+    // Ensure all items have linkType
+    if (db.catalogs) {
+      db.catalogs.forEach((c: any) => {
+        if (!c.linkType) {
+          c.linkType = 'BOTH';
+          updated = true;
+        }
+      });
+    }
+
+    if (!db.catalogs || db.catalogs.length < 15) {
+      db.catalogs = INITIAL_CATALOG_SEEDS;
+      updated = true;
+    }
+    if (!db.fieldConfigs) {
+      db.fieldConfigs = DEFAULT_FIELD_CONFIGS;
+      updated = true;
+    }
+    if (updated) {
+      fs.writeFileSync(LOCAL_DB_FILE, JSON.stringify(db, null, 2));
+    }
+    return db;
+  } catch {
+    return { users: [], passwords: {}, catalogs: INITIAL_CATALOG_SEEDS, fieldConfigs: DEFAULT_FIELD_CONFIGS, links: [] };
+  }
+}
+
+function saveLocalDB(data: LocalDBData) {
+  fs.writeFileSync(LOCAL_DB_FILE, JSON.stringify(data, null, 2));
+}
+
+// Map alias categories (e.g. utm_source -> source, media_source -> source)
+export function normalizeCategoryType(categoryType: string): string {
+  const norm = categoryType.toLowerCase();
+  if (['utm_source', 'media_source', 'pid', 'source'].includes(norm)) return 'source';
+  if (['utm_medium', 'channel', 'af_channel', 'medium'].includes(norm)) return 'medium';
+  if (['utm_campaign', 'campaign_name', 'c', 'campaign'].includes(norm)) return 'campaign';
+  if (['utm_content', 'ad_name', 'af_ad', 'content'].includes(norm)) return 'content';
+  if (['ad_group', 'ad_set', 'af_adset'].includes(norm)) return 'ad_set';
+  if (['utm_id', 'campaign_id', 'af_c_id'].includes(norm)) return 'campaign_id';
+  if (['utm_term', 'keywords', 'af_keywords', 'keyword'].includes(norm)) return 'keyword';
+  if (['deep_link_value', 'deep_link_screen'].includes(norm)) return 'deep_link_screen';
+  return norm;
+}
+
+// FIELD CONFIG MANAGEMENT
+export async function getFieldConfigs(): Promise<Record<string, FieldMode>> {
+  if (pool) {
+    try {
+      const res = await pool.query('SELECT category_type, mode FROM field_configs');
+      const configs: Record<string, FieldMode> = { ...DEFAULT_FIELD_CONFIGS };
+      res.rows.forEach((row) => {
+        configs[row.category_type] = row.mode;
+      });
+      return configs;
+    } catch {
+      return DEFAULT_FIELD_CONFIGS;
+    }
+  } else {
+    const db = getLocalDB();
+    return { ...DEFAULT_FIELD_CONFIGS, ...db.fieldConfigs };
+  }
+}
+
+export async function setFieldMode(categoryType: string, mode: FieldMode): Promise<Record<string, FieldMode>> {
+  const normCategory = normalizeCategoryType(categoryType);
+  if (pool) {
+    try {
+      await pool.query(
+        `INSERT INTO field_configs (category_type, mode)
+         VALUES ($1, $2)
+         ON CONFLICT (category_type) DO UPDATE SET mode = $2`,
+        [normCategory, mode]
+      );
+    } catch (e) {
+      console.error('Postgres setFieldMode error:', e);
+    }
+  } else {
+    const db = getLocalDB();
+    if (!db.fieldConfigs) db.fieldConfigs = { ...DEFAULT_FIELD_CONFIGS };
+    db.fieldConfigs[normCategory] = mode;
+    saveLocalDB(db);
+  }
+  return getFieldConfigs();
+}
+
+// Ensure database tables exist
+export async function initDbSchema() {
+  if (!pool) return;
+  const client = await pool.connect();
+  try {
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        full_name VARCHAR(100) NOT NULL,
+        role VARCHAR(20) NOT NULL DEFAULT 'MEMBER',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS field_configs (
+        category_type VARCHAR(50) PRIMARY KEY,
+        mode VARCHAR(20) NOT NULL DEFAULT 'FREE'
+      );
+
+      CREATE TABLE IF NOT EXISTS catalogs (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        link_type VARCHAR(20) DEFAULT 'BOTH',
+        category_type VARCHAR(50) NOT NULL,
+        value VARCHAR(255) NOT NULL,
+        description TEXT,
+        is_strict BOOLEAN DEFAULT FALSE,
+        usage_count INT DEFAULT 1,
+        last_used_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        created_by_user_id UUID,
+        CONSTRAINT unq_cat_link_type_val UNIQUE (link_type, category_type, value)
+      );
+
+      CREATE TABLE IF NOT EXISTS link_history (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        link_type VARCHAR(20) NOT NULL,
+        original_url TEXT NOT NULL,
+        final_link TEXT NOT NULL,
+        link_hash VARCHAR(64) UNIQUE NOT NULL,
+        utm_source VARCHAR(100),
+        utm_medium VARCHAR(100),
+        utm_campaign VARCHAR(150),
+        utm_id VARCHAR(100),
+        utm_content VARCHAR(150),
+        utm_term VARCHAR(150),
+        media_source VARCHAR(100),
+        af_channel VARCHAR(100),
+        af_c_id VARCHAR(100),
+        af_adset VARCHAR(150),
+        af_ad VARCHAR(150),
+        af_keywords VARCHAR(150),
+        deep_link_value VARCHAR(255),
+        is_retargeting BOOLEAN DEFAULT FALSE,
+        created_by_user_id UUID NOT NULL,
+        created_by_name VARCHAR(100) NOT NULL,
+        created_by_email VARCHAR(255) NOT NULL,
+        sync_status VARCHAR(20) DEFAULT 'PENDING',
+        sync_attempts INT DEFAULT 0,
+        last_sync_error TEXT,
+        synced_at TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+  } catch (err) {
+    console.error('Postgres Schema Init Warning:', err);
+  } finally {
+    client.release();
+  }
+}
+
+// USER OPERATIONS
+export async function getUserByEmail(email: string): Promise<{ user: User; passwordHash: string } | null> {
+  const normEmail = email.toLowerCase().trim();
+  if (pool) {
+    const res = await pool.query('SELECT * FROM users WHERE email = $1', [normEmail]);
+    if (res.rows.length === 0) return null;
+    const row = res.rows[0];
+    return {
+      user: {
+        id: row.id,
+        email: row.email,
+        fullName: row.full_name,
+        role: row.role as any,
+        createdAt: row.created_at,
+      },
+      passwordHash: row.password_hash,
+    };
+  } else {
+    const db = getLocalDB();
+    const u = db.users.find((x) => x.email.toLowerCase() === normEmail);
+    if (!u) return null;
+    return { user: u, passwordHash: db.passwords[u.id] || '' };
+  }
+}
+
+export async function createUser(email: string, passwordHash: string, fullName: string): Promise<User> {
+  const normEmail = email.toLowerCase().trim();
+  if (pool) {
+    const countRes = await pool.query('SELECT COUNT(*) FROM users');
+    const userCount = parseInt(countRes.rows[0].count, 10);
+    const role = userCount === 0 ? 'ADMIN' : 'MEMBER';
+
+    const insertRes = await pool.query(
+      `INSERT INTO users (email, password_hash, full_name, role)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, email, full_name, role, created_at`,
+      [normEmail, passwordHash, fullName.trim(), role]
+    );
+    const row = insertRes.rows[0];
+    return {
+      id: row.id,
+      email: row.email,
+      fullName: row.full_name,
+      role: row.role,
+      createdAt: row.created_at,
+    };
+  } else {
+    const db = getLocalDB();
+    const role = db.users.length === 0 ? 'ADMIN' : 'MEMBER';
+    const newUser: User = {
+      id: Buffer.from(Math.random().toString()).toString('hex').slice(0, 16),
+      email: normEmail,
+      fullName: fullName.trim(),
+      role,
+      createdAt: new Date().toISOString(),
+    };
+    db.users.push(newUser);
+    db.passwords[newUser.id] = passwordHash;
+    saveLocalDB(db);
+    return newUser;
+  }
+}
+
+// LINK OPERATIONS
+export async function getLinkByHash(linkHash: string): Promise<LinkRecord | null> {
+  if (pool) {
+    const res = await pool.query('SELECT * FROM link_history WHERE link_hash = $1', [linkHash]);
+    if (res.rows.length === 0) return null;
+    return mapPgLinkRow(res.rows[0]);
+  } else {
+    const db = getLocalDB();
+    return db.links.find((l) => l.linkHash === linkHash) || null;
+  }
+}
+
+export async function createLinkRecord(record: Omit<LinkRecord, 'id' | 'createdAt'>): Promise<LinkRecord> {
+  if (pool) {
+    const existing = await getLinkByHash(record.linkHash);
+    if (existing) {
+      const err: any = new Error('LINK_DUPLICATE');
+      err.existingRecord = existing;
+      throw err;
+    }
+
+    const res = await pool.query(
+      `INSERT INTO link_history (
+        link_type, original_url, final_link, link_hash,
+        utm_source, utm_medium, utm_campaign, utm_id, utm_content, utm_term,
+        media_source, af_channel, af_c_id, af_adset, af_ad, af_keywords, deep_link_value, is_retargeting,
+        created_by_user_id, created_by_name, created_by_email, sync_status, sync_attempts, last_sync_error
+      ) VALUES (
+        $1, $2, $3, $4,
+        $5, $6, $7, $8, $9, $10,
+        $11, $12, $13, $14, $15, $16, $17, $18,
+        $19, $20, $21, $22, $23, $24
+      ) RETURNING *`,
+      [
+        record.linkType,
+        record.originalUrl,
+        record.finalLink,
+        record.linkHash,
+        record.utmSource || null,
+        record.utmMedium || null,
+        record.utmCampaign || null,
+        record.utmId || null,
+        record.utmContent || null,
+        record.utmTerm || null,
+        record.mediaSource || null,
+        record.afChannel || null,
+        record.afCId || null,
+        record.afAdset || null,
+        record.afAd || null,
+        record.afKeywords || null,
+        record.deepLinkValue || null,
+        record.isRetargeting || false,
+        record.createdByUserId,
+        record.createdByName,
+        record.createdByEmail,
+        record.syncStatus,
+        record.syncAttempts,
+        record.lastSyncError || null,
+      ]
+    );
+    return mapPgLinkRow(res.rows[0]);
+  } else {
+    const db = getLocalDB();
+    const existing = db.links.find((l) => l.linkHash === record.linkHash);
+    if (existing) {
+      const err: any = new Error('LINK_DUPLICATE');
+      err.existingRecord = existing;
+      throw err;
+    }
+
+    const newRecord: LinkRecord = {
+      ...record,
+      id: Buffer.from(Math.random().toString()).toString('hex').slice(0, 16),
+      createdAt: new Date().toISOString(),
+    };
+    db.links.unshift(newRecord);
+    saveLocalDB(db);
+    return newRecord;
+  }
+}
+
+export async function getAllLinks(): Promise<LinkRecord[]> {
+  if (pool) {
+    const res = await pool.query('SELECT * FROM link_history ORDER BY created_at DESC');
+    return res.rows.map(mapPgLinkRow);
+  } else {
+    const db = getLocalDB();
+    return [...db.links].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+}
+
+export async function updateLinkSyncStatus(id: string, status: 'SUCCESS' | 'FAILED', error?: string): Promise<void> {
+  if (pool) {
+    await pool.query(
+      `UPDATE link_history
+       SET sync_status = $1,
+           sync_attempts = sync_attempts + 1,
+           last_sync_error = $2,
+           synced_at = CASE WHEN $1 = 'SUCCESS' THEN CURRENT_TIMESTAMP ELSE synced_at END
+       WHERE id = $3`,
+      [status, error || null, id]
+    );
+  } else {
+    const db = getLocalDB();
+    const item = db.links.find((l) => l.id === id);
+    if (item) {
+      item.syncStatus = status;
+      item.syncAttempts += 1;
+      if (error) item.lastSyncError = error;
+      if (status === 'SUCCESS') item.syncedAt = new Date().toISOString();
+      saveLocalDB(db);
+    }
+  }
+}
+
+// CATALOG OPERATIONS & CRUD
+export async function getCatalogItemsByCategory(rawCategoryType: string, linkType?: string): Promise<CatalogItem[]> {
+  const normCategory = normalizeCategoryType(rawCategoryType);
+  if (pool) {
+    let query = 'SELECT * FROM catalogs WHERE category_type = $1';
+    const params: any[] = [normCategory];
+    if (linkType) {
+      query += ' AND (link_type = $2 OR link_type = \'BOTH\' OR link_type IS NULL)';
+      params.push(linkType);
+    }
+    query += ' ORDER BY usage_count DESC, last_used_at DESC';
+    const res = await pool.query(query, params);
+    return res.rows.map(mapPgCatalogRow);
+  } else {
+    const db = getLocalDB();
+    return db.catalogs
+      .filter(
+        (c) =>
+          normalizeCategoryType(c.categoryType) === normCategory &&
+          (!linkType || !c.linkType || c.linkType === linkType || c.linkType === 'BOTH')
+      )
+      .sort((a, b) => b.usageCount - a.usageCount || new Date(b.lastUsedAt).getTime() - new Date(a.lastUsedAt).getTime());
+  }
+}
+
+export async function touchCatalogItem(rawCategoryType: string, value: string, linkType: 'UTM' | 'ONELINK', userId?: string): Promise<void> {
+  const trimmed = value.trim();
+  if (!trimmed) return;
+  const normCategory = normalizeCategoryType(rawCategoryType);
+
+  if (pool) {
+    await pool.query(
+      `INSERT INTO catalogs (link_type, category_type, value, usage_count, last_used_at, created_by_user_id)
+       VALUES ($1, $2, $3, 1, CURRENT_TIMESTAMP, $4)
+       ON CONFLICT (link_type, category_type, value)
+       DO UPDATE SET usage_count = catalogs.usage_count + 1, last_used_at = CURRENT_TIMESTAMP`,
+      [linkType, normCategory, trimmed, userId || null]
+    );
+  } else {
+    const db = getLocalDB();
+    const existing = db.catalogs.find((c) => normalizeCategoryType(c.categoryType) === normCategory && c.value.toLowerCase() === trimmed.toLowerCase());
+    if (existing) {
+      existing.usageCount += 1;
+      existing.lastUsedAt = new Date().toISOString();
+    } else {
+      db.catalogs.push({
+        id: Buffer.from(Math.random().toString()).toString('hex').slice(0, 16),
+        linkType,
+        categoryType: normCategory,
+        value: trimmed,
+        isStrict: false,
+        usageCount: 1,
+        lastUsedAt: new Date().toISOString(),
+        createdByUserId: userId,
+      });
+    }
+    saveLocalDB(db);
+  }
+}
+
+export async function getAllCatalogs(): Promise<CatalogItem[]> {
+  if (pool) {
+    const res = await pool.query('SELECT * FROM catalogs ORDER BY link_type ASC, category_type ASC, usage_count DESC');
+    return res.rows.map(mapPgCatalogRow);
+  } else {
+    const db = getLocalDB();
+    return db.catalogs;
+  }
+}
+
+export async function addCatalogItem(
+  linkType: 'UTM' | 'ONELINK' | 'BOTH',
+  categoryType: string,
+  value: string,
+  description?: string,
+  isStrict = false,
+  userId?: string
+): Promise<CatalogItem> {
+  const trimmedVal = value.trim();
+  const normCategory = normalizeCategoryType(categoryType);
+
+  if (pool) {
+    const res = await pool.query(
+      `INSERT INTO catalogs (link_type, category_type, value, description, is_strict, created_by_user_id)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [linkType, normCategory, trimmedVal, description?.trim() || null, isStrict, userId || null]
+    );
+    return mapPgCatalogRow(res.rows[0]);
+  } else {
+    const db = getLocalDB();
+    const newItem: CatalogItem = {
+      id: Buffer.from(Math.random().toString()).toString('hex').slice(0, 16),
+      linkType,
+      categoryType: normCategory,
+      value: trimmedVal,
+      description: description?.trim() || '',
+      isStrict,
+      usageCount: 1,
+      lastUsedAt: new Date().toISOString(),
+      createdByUserId: userId,
+    };
+    db.catalogs.push(newItem);
+    saveLocalDB(db);
+    return newItem;
+  }
+}
+
+export async function updateCatalogItem(
+  id: string,
+  linkType: 'UTM' | 'ONELINK' | 'BOTH',
+  value: string,
+  description?: string,
+  isStrict = false
+): Promise<CatalogItem | null> {
+  const trimmedVal = value.trim();
+  if (pool) {
+    const res = await pool.query(
+      `UPDATE catalogs
+       SET link_type = $1, value = $2, description = $3, is_strict = $4
+       WHERE id = $5
+       RETURNING *`,
+      [linkType, trimmedVal, description?.trim() || null, isStrict, id]
+    );
+    if (res.rows.length === 0) return null;
+    return mapPgCatalogRow(res.rows[0]);
+  } else {
+    const db = getLocalDB();
+    const item = db.catalogs.find((c) => c.id === id);
+    if (!item) return null;
+    item.linkType = linkType;
+    item.value = trimmedVal;
+    item.description = description?.trim() || '';
+    item.isStrict = isStrict;
+    saveLocalDB(db);
+    return item;
+  }
+}
+
+export async function deleteCatalogItem(id: string): Promise<boolean> {
+  if (pool) {
+    const res = await pool.query('DELETE FROM catalogs WHERE id = $1', [id]);
+    return (res.rowCount || 0) > 0;
+  } else {
+    const db = getLocalDB();
+    const idx = db.catalogs.findIndex((c) => c.id === id);
+    if (idx === -1) return false;
+    db.catalogs.splice(idx, 1);
+    saveLocalDB(db);
+    return true;
+  }
+}
+
+function mapPgLinkRow(row: any): LinkRecord {
+  return {
+    id: row.id,
+    linkType: row.link_type,
+    originalUrl: row.original_url,
+    finalLink: row.final_link,
+    linkHash: row.link_hash,
+    utmSource: row.utm_source,
+    utmMedium: row.utm_medium,
+    utmCampaign: row.utm_campaign,
+    utmId: row.utm_id,
+    utmContent: row.utm_content,
+    utmTerm: row.utm_term,
+    mediaSource: row.media_source,
+    afChannel: row.af_channel,
+    afCId: row.af_c_id,
+    afAdset: row.af_adset,
+    afAd: row.af_ad,
+    afKeywords: row.af_keywords,
+    deepLinkValue: row.deep_link_value,
+    isRetargeting: row.is_retargeting,
+    createdByUserId: row.created_by_user_id,
+    createdByName: row.created_by_name,
+    createdByEmail: row.created_by_email,
+    syncStatus: row.sync_status,
+    syncAttempts: row.sync_attempts,
+    lastSyncError: row.last_sync_error,
+    syncedAt: row.synced_at,
+    createdAt: row.created_at,
+  };
+}
+
+function mapPgCatalogRow(row: any): CatalogItem {
+  return {
+    id: row.id,
+    linkType: row.link_type || 'BOTH',
+    categoryType: row.category_type,
+    value: row.value,
+    description: row.description || '',
+    isStrict: row.is_strict,
+    usageCount: row.usage_count,
+    lastUsedAt: row.last_used_at,
+    createdByUserId: row.created_by_user_id,
+  };
+}
