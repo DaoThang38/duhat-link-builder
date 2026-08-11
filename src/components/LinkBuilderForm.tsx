@@ -35,7 +35,8 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
   const [utmTerm, setUtmTerm] = useState('');
 
   // Form Fields - AppsFlyer OneLink
-  const [oneLinkTemplate, setOneLinkTemplate] = useState('https://duhat.onelink.me/abc1');
+  const DEFAULT_ONELINK_TEMPLATE = process.env.NEXT_PUBLIC_ONELINK_DEFAULT_TEMPLATE || 'https://duhat.onelink.me/abc1';
+  const [oneLinkTemplate, setOneLinkTemplate] = useState(DEFAULT_ONELINK_TEMPLATE);
   const [mediaSource, setMediaSource] = useState('');
   const [campaignName, setCampaignName] = useState('');
   const [channel, setChannel] = useState('');
@@ -63,7 +64,7 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
       } else {
         if (!oneLinkTemplate && !mediaSource && !campaignName) return '';
         return generateOneLinkUrl({
-          oneLinkTemplate: oneLinkTemplate || 'https://duhat.onelink.me/abc1',
+          oneLinkTemplate: oneLinkTemplate || DEFAULT_ONELINK_TEMPLATE,
           mediaSource: mediaSource || '',
           campaignName: campaignName || '',
           channel: channel || undefined,
