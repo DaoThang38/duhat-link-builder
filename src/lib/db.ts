@@ -116,15 +116,33 @@ async function ensurePostgresSeeds() {
       const id = item.id || crypto.randomUUID();
       await pool.query(
         `INSERT INTO catalogs (id, link_type, category_type, value, description, is_strict, usage_count)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         VALUES ($1, 'BOTH', $2, $3, $4, $5, $6)
          ON CONFLICT (link_type, category_type, value) DO NOTHING`,
-        [id, item.linkType || 'BOTH', item.categoryType, item.value, item.description || null, item.isStrict || false, item.usageCount || 1]
+        [id, item.categoryType, item.value, item.description || null, item.isStrict || false, item.usageCount || 1]
       );
     }
     hasPostgresSeeded = true;
   } catch (e) {
     console.error('Postgres auto seed error:', e);
   }
+}
+
+function deduplicateCatalogItems(items: CatalogItem[]): CatalogItem[] {
+  const map = new Map<string, CatalogItem>();
+  items.forEach((item) => {
+    const normCat = normalizeCategoryType(item.categoryType);
+    const key = `${normCat}:${item.value.toLowerCase().trim()}`;
+    if (!map.has(key)) {
+      map.set(key, { ...item, linkType: 'BOTH' });
+    } else {
+      const existing = map.get(key)!;
+      existing.usageCount = Math.max(existing.usageCount, item.usageCount);
+      if (item.description && !existing.description) {
+        existing.description = item.description;
+      }
+    }
+  });
+  return Array.from(map.values());
 }
 
 function getLocalDB(): LocalDBData {
@@ -164,32 +182,8 @@ function getLocalDB(): LocalDBData {
     }
   }
 
-  // Deduplicate catalogs by categoryType + value (case-insensitive)
-  if (db.catalogs && db.catalogs.length > 0) {
-    const seenMap = new Map<string, CatalogItem>();
-    let hasDuplicates = false;
-
-    db.catalogs.forEach((c) => {
-      const normCat = normalizeCategoryType(c.categoryType);
-      const key = `${normCat}:${c.value.toLowerCase().trim()}`;
-      if (!c.linkType) c.linkType = 'BOTH';
-
-      if (seenMap.has(key)) {
-        hasDuplicates = true;
-        const existing = seenMap.get(key)!;
-        existing.usageCount = Math.max(existing.usageCount, c.usageCount);
-        if (c.description && !existing.description) existing.description = c.description;
-      } else {
-        seenMap.set(key, c);
-      }
-    });
-
-    if (hasDuplicates) {
-      db.catalogs = Array.from(seenMap.values());
-      try {
-        fs.writeFileSync(LOCAL_DB_FILE, JSON.stringify(db, null, 2));
-      } catch {}
-    }
+  if (db.catalogs) {
+    db.catalogs = deduplicateCatalogItems(db.catalogs);
   }
 
   globalThis.__DUHAT_LOCAL_DB__ = db;
@@ -197,6 +191,9 @@ function getLocalDB(): LocalDBData {
 }
 
 function saveLocalDB(data: LocalDBData) {
+  if (data.catalogs) {
+    data.catalogs = deduplicateCatalogItems(data.catalogs);
+  }
   globalThis.__DUHAT_LOCAL_DB__ = data;
   try {
     fs.writeFileSync(LOCAL_DB_FILE, JSON.stringify(data, null, 2));
@@ -324,14 +321,14 @@ export async function initDbSchema() {
       );
     `);
 
-    // Alter existing table columns to VARCHAR(255) if they were created with UUID previously
+    // Delete existing duplicate rows in PostgreSQL
     try {
       await client.query(`
-        ALTER TABLE users ALTER COLUMN id TYPE VARCHAR(255);
-        ALTER TABLE catalogs ALTER COLUMN id TYPE VARCHAR(255);
-        ALTER TABLE catalogs ALTER COLUMN created_by_user_id TYPE VARCHAR(255);
-        ALTER TABLE link_history ALTER COLUMN id TYPE VARCHAR(255);
-        ALTER TABLE link_history ALTER COLUMN created_by_user_id TYPE VARCHAR(255);
+        DELETE FROM catalogs a
+        USING catalogs b
+        WHERE a.ctid < b.ctid
+          AND a.category_type = b.category_type
+          AND LOWER(a.value) = LOWER(b.value);
       `);
     } catch {}
 
@@ -529,25 +526,17 @@ export async function getCatalogItemsByCategory(rawCategoryType: string, linkTyp
   const normCategory = normalizeCategoryType(rawCategoryType);
   if (pool) {
     await ensurePostgresSeeds();
-
-    let query = 'SELECT * FROM catalogs WHERE category_type = $1';
-    const params: any[] = [normCategory];
-    if (linkType) {
-      query += ' AND (link_type = $2 OR link_type = \'BOTH\' OR link_type IS NULL)';
-      params.push(linkType);
-    }
-    query += ' ORDER BY usage_count DESC, last_used_at DESC';
-    const res = await pool.query(query, params);
-    return res.rows.map(mapPgCatalogRow);
+    const res = await pool.query(
+      `SELECT * FROM catalogs WHERE category_type = $1 ORDER BY usage_count DESC, last_used_at DESC`,
+      [normCategory]
+    );
+    return deduplicateCatalogItems(res.rows.map(mapPgCatalogRow));
   } else {
     const db = getLocalDB();
-    return db.catalogs
-      .filter(
-        (c) =>
-          normalizeCategoryType(c.categoryType) === normCategory &&
-          (!linkType || !c.linkType || c.linkType === linkType || c.linkType === 'BOTH')
-      )
-      .sort((a, b) => b.usageCount - a.usageCount || new Date(b.lastUsedAt).getTime() - new Date(a.lastUsedAt).getTime());
+    const filtered = db.catalogs.filter((c) => normalizeCategoryType(c.categoryType) === normCategory);
+    return deduplicateCatalogItems(filtered).sort(
+      (a, b) => b.usageCount - a.usageCount || new Date(b.lastUsedAt).getTime() - new Date(a.lastUsedAt).getTime()
+    );
   }
 }
 
@@ -558,13 +547,23 @@ export async function touchCatalogItem(rawCategoryType: string, value: string, l
   const catId = crypto.randomUUID();
 
   if (pool) {
-    await pool.query(
-      `INSERT INTO catalogs (id, link_type, category_type, value, usage_count, last_used_at, created_by_user_id)
-       VALUES ($1, $2, $3, $4, 1, CURRENT_TIMESTAMP, $5)
-       ON CONFLICT (link_type, category_type, value)
-       DO UPDATE SET usage_count = catalogs.usage_count + 1, last_used_at = CURRENT_TIMESTAMP`,
-      [catId, linkType, normCategory, trimmed, userId || null]
+    const updateRes = await pool.query(
+      `UPDATE catalogs
+       SET usage_count = usage_count + 1,
+           last_used_at = CURRENT_TIMESTAMP,
+           link_type = 'BOTH'
+       WHERE category_type = $1 AND LOWER(value) = LOWER($2)`,
+      [normCategory, trimmed]
     );
+
+    if ((updateRes.rowCount || 0) === 0) {
+      await pool.query(
+        `INSERT INTO catalogs (id, link_type, category_type, value, usage_count, last_used_at, created_by_user_id)
+         VALUES ($1, 'BOTH', $2, $3, 1, CURRENT_TIMESTAMP, $4)
+         ON CONFLICT DO NOTHING`,
+        [catId, normCategory, trimmed, userId || null]
+      );
+    }
   } else {
     const db = getLocalDB();
     const existing = db.catalogs.find(
@@ -593,10 +592,10 @@ export async function getAllCatalogs(): Promise<CatalogItem[]> {
   if (pool) {
     await ensurePostgresSeeds();
     const res = await pool.query('SELECT * FROM catalogs ORDER BY link_type ASC, category_type ASC, usage_count DESC');
-    return res.rows.map(mapPgCatalogRow);
+    return deduplicateCatalogItems(res.rows.map(mapPgCatalogRow));
   } else {
     const db = getLocalDB();
-    return db.catalogs;
+    return deduplicateCatalogItems(db.catalogs);
   }
 }
 
@@ -607,22 +606,36 @@ export async function addCatalogItem(
   description?: string,
   isStrict = false,
   userId?: string
-): Promise<CatalogItem> {
+): Promise<{ item: CatalogItem; isExisting: boolean }> {
   const trimmedVal = value.trim();
   const normCategory = normalizeCategoryType(categoryType);
-  const targetLinkType = linkType || 'BOTH';
   const catId = crypto.randomUUID();
 
   if (pool) {
+    const checkRes = await pool.query(
+      `SELECT * FROM catalogs WHERE category_type = $1 AND LOWER(value) = LOWER($2)`,
+      [normCategory, trimmedVal]
+    );
+
+    if (checkRes.rows.length > 0) {
+      const existing = checkRes.rows[0];
+      const updateRes = await pool.query(
+        `UPDATE catalogs
+         SET link_type = 'BOTH', description = COALESCE($1, description), is_strict = $2, last_used_at = CURRENT_TIMESTAMP
+         WHERE id = $3
+         RETURNING *`,
+        [description?.trim() || null, isStrict, existing.id]
+      );
+      return { item: mapPgCatalogRow(updateRes.rows[0]), isExisting: true };
+    }
+
     const res = await pool.query(
       `INSERT INTO catalogs (id, link_type, category_type, value, description, is_strict, created_by_user_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       ON CONFLICT (link_type, category_type, value)
-       DO UPDATE SET description = COALESCE($5, catalogs.description), is_strict = $6, last_used_at = CURRENT_TIMESTAMP
+       VALUES ($1, 'BOTH', $2, $3, $4, $5, $6)
        RETURNING *`,
-      [catId, targetLinkType, normCategory, trimmedVal, description?.trim() || null, isStrict, userId || null]
+      [catId, normCategory, trimmedVal, description?.trim() || null, isStrict, userId || null]
     );
-    return mapPgCatalogRow(res.rows[0]);
+    return { item: mapPgCatalogRow(res.rows[0]), isExisting: false };
   } else {
     const db = getLocalDB();
     const existing = db.catalogs.find(
@@ -635,7 +648,7 @@ export async function addCatalogItem(
       existing.isStrict = isStrict;
       existing.lastUsedAt = new Date().toISOString();
       saveLocalDB(db);
-      return existing;
+      return { item: existing, isExisting: true };
     }
 
     const newItem: CatalogItem = {
@@ -651,7 +664,7 @@ export async function addCatalogItem(
     };
     db.catalogs.push(newItem);
     saveLocalDB(db);
-    return newItem;
+    return { item: newItem, isExisting: false };
   }
 }
 

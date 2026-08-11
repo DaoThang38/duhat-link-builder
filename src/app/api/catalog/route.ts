@@ -53,8 +53,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Vui lòng nhập đầy đủ Loại danh mục và Giá trị.' }, { status: 400 });
     }
 
-    const item = await addCatalogItem(linkType || 'BOTH', categoryType, value, description, isStrict || false, user.id);
-    return NextResponse.json({ item, message: 'Đã thêm danh mục thành công!' }, { status: 201 });
+    const { item, isExisting } = await addCatalogItem(linkType || 'BOTH', categoryType, value, description, isStrict || false, user.id);
+    const message = isExisting
+      ? `Mã "${value}" đã tồn tại trong danh mục chuẩn (hệ thống đã tự động gộp & cập nhật).`
+      : `Đã thêm danh mục "${value}" thành công!`;
+    return NextResponse.json({ item, message }, { status: 201 });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
