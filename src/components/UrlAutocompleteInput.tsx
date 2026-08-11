@@ -5,6 +5,7 @@ import { ChevronDown, History, Globe } from 'lucide-react';
 
 interface UrlAutocompleteInputProps {
   label: string;
+  linkType?: 'UTM' | 'ONELINK';
   value: string;
   onChange: (val: string) => void;
   placeholder?: string;
@@ -14,6 +15,7 @@ interface UrlAutocompleteInputProps {
 
 export default function UrlAutocompleteInput({
   label,
+  linkType,
   value,
   onChange,
   placeholder,
@@ -31,12 +33,21 @@ export default function UrlAutocompleteInput({
         const res = await fetch('/api/links');
         if (res.ok) {
           const data = await res.json();
-          const links = data.links || [];
-          const urls = Array.from(
-            new Set<string>(
-              links.map((l: any) => l.originalUrl).filter((u: string) => u && (u.startsWith('http://') || u.startsWith('https://')))
-            )
+          const links: any[] = data.links || [];
+
+          let filtered = links.filter(
+            (l) => l.originalUrl && (l.originalUrl.startsWith('http://') || l.originalUrl.startsWith('https://'))
           );
+
+          if (linkType === 'UTM') {
+            // Only suggest website landing page URLs for UTM (exclude AppsFlyer template URLs)
+            filtered = filtered.filter((l) => !l.originalUrl.includes('onelink.me'));
+          } else if (linkType === 'ONELINK') {
+            // Only suggest AppsFlyer OneLink template URLs (contains onelink.me)
+            filtered = filtered.filter((l) => l.originalUrl.includes('onelink.me'));
+          }
+
+          const urls = Array.from(new Set<string>(filtered.map((l) => l.originalUrl)));
           setRecentUrls(urls);
         }
       } catch (e) {
@@ -44,7 +55,7 @@ export default function UrlAutocompleteInput({
       }
     }
     loadRecentUrls();
-  }, []);
+  }, [linkType]);
 
   const filteredUrls = recentUrls.filter((url) =>
     url.toLowerCase().includes(value.toLowerCase())
@@ -82,7 +93,7 @@ export default function UrlAutocompleteInput({
             setIsOpen(true);
           }}
           onFocus={() => setIsOpen(true)}
-          placeholder={placeholder || 'https://duhat.vn/landing-page'}
+          placeholder={placeholder || (linkType === 'ONELINK' ? 'https://duhat.onelink.me/abc1' : 'https://duhat.vn/landing-page')}
           className="w-full pr-24"
           autoComplete="url"
         />
@@ -107,7 +118,7 @@ export default function UrlAutocompleteInput({
       {isOpen && filteredUrls.length > 0 && (
         <div className="absolute z-50 top-[76px] left-0 right-0 p-1.5 bg-white border border-[#deded7] rounded-[14px] shadow-[0_16px_36px_rgba(32,32,28,0.16)] max-h-60 overflow-y-auto">
           <div className="px-2 py-1 text-[10px] font-black uppercase text-[#71716a] tracking-wider border-b border-[#f0f0eb] mb-1 flex items-center justify-between">
-            <span>GỢI Ý URL ĐÃ SỬ DỤNG GẦN ĐÂY</span>
+            <span>GỢI Ý URL {linkType === 'ONELINK' ? 'ONELINK' : 'WEBSITE'} ĐÃ DÙNG GẦN ĐÂY</span>
             <span>{filteredUrls.length} URL</span>
           </div>
 

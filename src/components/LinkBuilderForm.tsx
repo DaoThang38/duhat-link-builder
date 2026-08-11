@@ -288,11 +288,12 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
           <div className="space-y-5">
             <UrlAutocompleteInput
               label="URL website"
+              linkType="UTM"
               value={utmUrl}
               onChange={setUtmUrl}
               required
               placeholder="https://duhat.vn/landing-page"
-              helpText="URL đầy đủ bắt đầu bằng http:// hoặc https://. Tự động gợi ý từ lịch sử."
+              helpText="URL đầy đủ bắt đầu bằng http:// hoặc https://. Tự động gợi ý từ lịch sử website."
             />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -360,11 +361,12 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
           <div className="space-y-5">
             <UrlAutocompleteInput
               label="OneLink Template"
+              linkType="ONELINK"
               value={oneLinkTemplate}
               onChange={setOneLinkTemplate}
               required
               placeholder="https://duhat.onelink.me/abc1"
-              helpText="Link mẫu AppsFlyer được cấu hình sẵn. Tự động gợi ý từ lịch sử."
+              helpText="Link mẫu AppsFlyer được cấu hình sẵn. Tự động gợi ý các Template OneLink."
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
