@@ -476,47 +476,57 @@ export async function createLinkRecord(record: Omit<LinkRecord, 'id' | 'createdA
       throw err;
     }
 
-    const res = await pool.query(
-      `INSERT INTO link_history (
-        id, link_type, original_url, final_link, link_hash,
-        utm_source, utm_medium, utm_campaign, utm_id, utm_content, utm_term,
-        media_source, af_channel, af_c_id, af_adset, af_ad, af_keywords, deep_link_value, is_retargeting,
-        created_by_user_id, created_by_name, created_by_email, sync_status, sync_attempts, last_sync_error
-      ) VALUES (
-        $1, $2, $3, $4, $5,
-        $6, $7, $8, $9, $10, $11,
-        $12, $13, $14, $15, $16, $17, $18, $19,
-        $20, $21, $22, $23, $24, $25
-      ) RETURNING *`,
-      [
-        linkId,
-        record.linkType,
-        record.originalUrl,
-        record.finalLink,
-        record.linkHash,
-        record.utmSource || null,
-        record.utmMedium || null,
-        record.utmCampaign || null,
-        record.utmId || null,
-        record.utmContent || null,
-        record.utmTerm || null,
-        record.mediaSource || null,
-        record.afChannel || null,
-        record.afCId || null,
-        record.afAdset || null,
-        record.afAd || null,
-        record.afKeywords || null,
-        record.deepLinkValue || null,
-        record.isRetargeting || false,
-        record.createdByUserId,
-        record.createdByName,
-        record.createdByEmail,
-        record.syncStatus,
-        record.syncAttempts,
-        record.lastSyncError || null,
-      ]
-    );
-    return mapPgLinkRow(res.rows[0]);
+    try {
+      const res = await pool.query(
+        `INSERT INTO link_history (
+          id, link_type, original_url, final_link, link_hash,
+          utm_source, utm_medium, utm_campaign, utm_id, utm_content, utm_term,
+          media_source, af_channel, af_c_id, af_adset, af_ad, af_keywords, deep_link_value, is_retargeting,
+          created_by_user_id, created_by_name, created_by_email, sync_status, sync_attempts, last_sync_error
+        ) VALUES (
+          $1, $2, $3, $4, $5,
+          $6, $7, $8, $9, $10, $11,
+          $12, $13, $14, $15, $16, $17, $18, $19,
+          $20, $21, $22, $23, $24, $25
+        ) RETURNING *`,
+        [
+          linkId,
+          record.linkType,
+          record.originalUrl,
+          record.finalLink,
+          record.linkHash,
+          record.utmSource || null,
+          record.utmMedium || null,
+          record.utmCampaign || null,
+          record.utmId || null,
+          record.utmContent || null,
+          record.utmTerm || null,
+          record.mediaSource || null,
+          record.afChannel || null,
+          record.afCId || null,
+          record.afAdset || null,
+          record.afAd || null,
+          record.afKeywords || null,
+          record.deepLinkValue || null,
+          record.isRetargeting || false,
+          record.createdByUserId,
+          record.createdByName,
+          record.createdByEmail,
+          record.syncStatus,
+          record.syncAttempts,
+          record.lastSyncError || null,
+        ]
+      );
+      return mapPgLinkRow(res.rows[0]);
+    } catch (pgErr: any) {
+      if (pgErr.code === '23505' || pgErr.message?.includes('duplicate key') || pgErr.message?.includes('link_hash')) {
+        const existing = await getLinkByHash(record.linkHash);
+        const err: any = new Error('LINK_DUPLICATE');
+        err.existingRecord = existing;
+        throw err;
+      }
+      throw pgErr;
+    }
   } else {
     const db = getLocalDB();
     const existing = db.links.find((l) => l.linkHash === record.linkHash);
