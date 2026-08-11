@@ -106,20 +106,20 @@ const INITIAL_CATALOG_SEEDS: CatalogItem[] = [
   { id: 'c43', linkType: 'BOTH', categoryType: 'keyword', value: 'khao_sat_truc_tuyen', description: 'Từ khóa tìm kiếm khảo sát trực tuyến', isStrict: false, usageCount: 8, lastUsedAt: new Date().toISOString() },
 ];
 
+let hasPostgresSeeded = false;
+
 async function ensurePostgresSeeds() {
-  if (!pool) return;
+  if (!pool || hasPostgresSeeded) return;
   try {
-    const check = await pool.query('SELECT COUNT(*) FROM catalogs');
-    if (parseInt(check.rows[0].count, 10) < 15) {
-      for (const item of INITIAL_CATALOG_SEEDS) {
-        await pool.query(
-          `INSERT INTO catalogs (link_type, category_type, value, description, is_strict, usage_count)
-           VALUES ($1, $2, $3, $4, $5, $6)
-           ON CONFLICT (link_type, category_type, value) DO NOTHING`,
-          [item.linkType || 'BOTH', item.categoryType, item.value, item.description || null, item.isStrict || false, item.usageCount || 1]
-        );
-      }
+    for (const item of INITIAL_CATALOG_SEEDS) {
+      await pool.query(
+        `INSERT INTO catalogs (link_type, category_type, value, description, is_strict, usage_count)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT DO NOTHING`,
+        [item.linkType || 'BOTH', item.categoryType, item.value, item.description || null, item.isStrict || false, item.usageCount || 1]
+      );
     }
+    hasPostgresSeeded = true;
   } catch (e) {
     console.error('Postgres auto seed error:', e);
   }
