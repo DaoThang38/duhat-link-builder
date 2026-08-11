@@ -28,6 +28,7 @@ interface LocalDBData {
   passwords: Record<string, string>;
   catalogs: CatalogItem[];
   fieldConfigs: Record<string, FieldMode>;
+  userFieldConfigs?: Record<string, Record<string, FieldMode>>;
   links: LinkRecord[];
 }
 
@@ -216,45 +217,73 @@ export function normalizeCategoryType(categoryType: string): string {
   return norm;
 }
 
-// FIELD CONFIG MANAGEMENT
-export async function getFieldConfigs(): Promise<Record<string, FieldMode>> {
+// FIELD CONFIG MANAGEMENT (PER-USER INDEPENDENT)
+export async function getFieldConfigs(userId?: string): Promise<Record<string, FieldMode>> {
   if (pool) {
     try {
-      const res = await pool.query('SELECT category_type, mode FROM field_configs');
-      const configs: Record<string, FieldMode> = { ...DEFAULT_FIELD_CONFIGS };
-      res.rows.forEach((row) => {
-        configs[row.category_type] = row.mode;
-      });
-      return configs;
+      if (userId) {
+        const res = await pool.query('SELECT category_type, mode FROM user_field_configs WHERE user_id = $1', [userId]);
+        const configs: Record<string, FieldMode> = { ...DEFAULT_FIELD_CONFIGS };
+        res.rows.forEach((row) => {
+          configs[row.category_type] = row.mode as FieldMode;
+        });
+        return configs;
+      } else {
+        const res = await pool.query('SELECT category_type, mode FROM field_configs');
+        const configs: Record<string, FieldMode> = { ...DEFAULT_FIELD_CONFIGS };
+        res.rows.forEach((row) => {
+          configs[row.category_type] = row.mode as FieldMode;
+        });
+        return configs;
+      }
     } catch {
       return DEFAULT_FIELD_CONFIGS;
     }
   } else {
     const db = getLocalDB();
+    if (userId) {
+      if (!db.userFieldConfigs) db.userFieldConfigs = {};
+      return { ...DEFAULT_FIELD_CONFIGS, ...(db.userFieldConfigs[userId] || {}) };
+    }
     return { ...DEFAULT_FIELD_CONFIGS, ...db.fieldConfigs };
   }
 }
 
-export async function setFieldMode(categoryType: string, mode: FieldMode): Promise<Record<string, FieldMode>> {
+export async function setFieldMode(categoryType: string, mode: FieldMode, userId?: string): Promise<Record<string, FieldMode>> {
   const normCategory = normalizeCategoryType(categoryType);
   if (pool) {
     try {
-      await pool.query(
-        `INSERT INTO field_configs (category_type, mode)
-         VALUES ($1, $2)
-         ON CONFLICT (category_type) DO UPDATE SET mode = $2`,
-        [normCategory, mode]
-      );
+      if (userId) {
+        await pool.query(
+          `INSERT INTO user_field_configs (user_id, category_type, mode)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (user_id, category_type) DO UPDATE SET mode = $3`,
+          [userId, normCategory, mode]
+        );
+      } else {
+        await pool.query(
+          `INSERT INTO field_configs (category_type, mode)
+           VALUES ($1, $2)
+           ON CONFLICT (category_type) DO UPDATE SET mode = $2`,
+          [normCategory, mode]
+        );
+      }
     } catch (e) {
       console.error('Postgres setFieldMode error:', e);
     }
   } else {
     const db = getLocalDB();
-    if (!db.fieldConfigs) db.fieldConfigs = { ...DEFAULT_FIELD_CONFIGS };
-    db.fieldConfigs[normCategory] = mode;
+    if (userId) {
+      if (!db.userFieldConfigs) db.userFieldConfigs = {};
+      if (!db.userFieldConfigs[userId]) db.userFieldConfigs[userId] = { ...DEFAULT_FIELD_CONFIGS };
+      db.userFieldConfigs[userId][normCategory] = mode;
+    } else {
+      if (!db.fieldConfigs) db.fieldConfigs = { ...DEFAULT_FIELD_CONFIGS };
+      db.fieldConfigs[normCategory] = mode;
+    }
     saveLocalDB(db);
   }
-  return getFieldConfigs();
+  return getFieldConfigs(userId);
 }
 
 // Ensure database tables exist and auto-seed initial catalog items on PostgreSQL
@@ -275,6 +304,13 @@ export async function initDbSchema() {
       CREATE TABLE IF NOT EXISTS field_configs (
         category_type VARCHAR(50) PRIMARY KEY,
         mode VARCHAR(20) NOT NULL DEFAULT 'FREE'
+      );
+
+      CREATE TABLE IF NOT EXISTS user_field_configs (
+        user_id VARCHAR(255) NOT NULL,
+        category_type VARCHAR(50) NOT NULL,
+        mode VARCHAR(20) NOT NULL DEFAULT 'FREE',
+        PRIMARY KEY (user_id, category_type)
       );
 
       CREATE TABLE IF NOT EXISTS catalogs (

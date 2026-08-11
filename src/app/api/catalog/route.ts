@@ -14,9 +14,10 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const categoryType = searchParams.get('category');
   const linkType = searchParams.get('linkType');
+  const user = await getSessionUser();
 
   try {
-    const fieldModes = await getFieldConfigs();
+    const fieldModes = await getFieldConfigs(user?.id);
     if (categoryType) {
       const items = await getCatalogItemsByCategory(categoryType, linkType || undefined);
       return NextResponse.json({ items, fieldModes });
@@ -44,8 +45,8 @@ export async function POST(req: Request) {
       if (!categoryType || !mode) {
         return NextResponse.json({ error: 'Thiếu categoryType hoặc mode.' }, { status: 400 });
       }
-      const updatedModes = await setFieldMode(categoryType, mode);
-      return NextResponse.json({ fieldModes: updatedModes, message: `Đã cập nhật chế độ cho ${categoryType}` });
+      const updatedModes = await setFieldMode(categoryType, mode, user.id);
+      return NextResponse.json({ fieldModes: updatedModes, message: `Đã cập nhật chế độ cho riêng tài khoản của bạn` });
     }
 
     const { linkType, categoryType, value, description, isStrict } = body;
