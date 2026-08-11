@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { User } from '@/types';
@@ -16,6 +16,24 @@ export default function Navbar({ user, onLogout }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [teamMembers, setTeamMembers] = useState<User[]>([]);
+
+  useEffect(() => {
+    async function loadMembers() {
+      if (user?.role === 'ADMIN') {
+        try {
+          const res = await fetch('/api/users');
+          if (res.ok) {
+            const data = await res.json();
+            setTeamMembers(data.users || []);
+          }
+        } catch (e) {
+          console.error('Failed to load team members:', e);
+        }
+      }
+    }
+    loadMembers();
+  }, [user?.role]);
 
   const handleLogout = async () => {
     try {
@@ -36,10 +54,6 @@ export default function Navbar({ user, onLogout }: NavbarProps) {
     { name: 'Danh mục chuẩn', href: '/dashboard/catalog' },
   ];
 
-  if (user.role === 'ADMIN') {
-    navItems.push({ name: 'Thành viên (Admin)', href: '/dashboard/users' });
-  }
-
   return (
     <>
       <header className="sticky top-0 z-40 bg-[#ffcc00] border-b border-[#20201c]/15 shadow-sm text-[#20201c] font-sans">
@@ -52,7 +66,7 @@ export default function Navbar({ user, onLogout }: NavbarProps) {
             <span className="font-black text-sm tracking-tight uppercase">Link Builder</span>
           </Link>
 
-          {/* Center: Compact Pill Navigation */}
+          {/* Center: Compact 3-Tab Pill Navigation */}
           <nav className="flex items-center gap-1.5 bg-[#20201c]/10 p-1 rounded-full border border-[#20201c]/10">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
@@ -72,14 +86,14 @@ export default function Navbar({ user, onLogout }: NavbarProps) {
             })}
           </nav>
 
-          {/* Right: User Profile & Actions */}
-          <div className="flex items-center gap-2.5">
+          {/* Right: User Profile, Member Selector & Actions */}
+          <div className="flex items-center gap-2">
             {/* Clickable Profile Badge for Changing Name */}
             <button
               type="button"
               onClick={() => setIsEditProfileOpen(true)}
-              title="Click để đổi tên hiển thị"
-              className="flex items-center gap-2 bg-white hover:bg-[#fff9df] px-3.5 py-1.5 rounded-full border border-[#20201c]/20 text-xs font-extrabold text-[#20201c] cursor-pointer transition-all shadow-xs group"
+              title="Nhấp để đổi tên hiển thị"
+              className="flex items-center gap-1.5 bg-white hover:bg-[#fff9df] px-3 py-1.5 rounded-full border border-[#20201c]/20 text-xs font-extrabold text-[#20201c] cursor-pointer transition-all shadow-xs group"
             >
               <UserIcon className="w-3.5 h-3.5 text-[#20201c]" />
               <span>{user.fullName}</span>
@@ -91,10 +105,35 @@ export default function Navbar({ user, onLogout }: NavbarProps) {
               <Edit3 className="w-3 h-3 text-[#71716a] group-hover:text-[#20201c] transition-colors ml-0.5" />
             </button>
 
+            {/* Admin Member List Dropdown right next to Profile Badge */}
+            {user.role === 'ADMIN' && (
+              <div className="relative">
+                <select
+                  aria-label="Danh sách tất cả thành viên trong team"
+                  className="bg-white/95 hover:bg-white border border-[#20201c]/20 text-[#20201c] text-xs font-extrabold rounded-full px-3 py-1.5 focus:outline-none focus:border-[#20201c] cursor-pointer shadow-xs transition-colors"
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      const selected = teamMembers.find((m) => m.email === e.target.value);
+                      if (selected) {
+                        alert(`Thành viên: ${selected.fullName}\nEmail: ${selected.email}\nVai trò: ${selected.role}`);
+                      }
+                    }
+                  }}
+                >
+                  <option value="">👥 Thành viên ({teamMembers.length || 1})</option>
+                  {teamMembers.map((m) => (
+                    <option key={m.id} value={m.email}>
+                      {m.fullName} ({m.email}) [{m.role}]
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <button
               onClick={handleLogout}
               title="Đăng xuất"
-              className="px-3 py-1.5 bg-[#20201c] text-white hover:bg-black rounded-full text-xs font-black transition-all flex items-center gap-1 cursor-pointer border-0 shadow-sm"
+              className="px-3 py-1.5 bg-[#20201c] text-white hover:bg-black rounded-full text-xs font-black transition-all flex items-center gap-1 cursor-pointer border-0 shadow-sm ml-1"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Thoát</span>
