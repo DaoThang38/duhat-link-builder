@@ -5,6 +5,23 @@ import { LinkRecord } from '@/types';
 import SyncStatusBadge from './SyncStatusBadge';
 import { Search, Copy, Check, Filter, ExternalLink, RefreshCw } from 'lucide-react';
 
+function getCampaignDisplayName(item: LinkRecord): string {
+  // Check if utmCampaign is present and not equal to source/medium
+  if (item.utmCampaign && item.utmCampaign !== '-' && item.utmCampaign !== item.utmSource && item.utmCampaign !== item.mediaSource) {
+    return item.utmCampaign;
+  }
+  if (item.afCId && item.afCId !== '-') return item.afCId;
+  
+  // Extract c= or utm_campaign= from finalLink if missing on historical records
+  try {
+    const url = new URL(item.finalLink);
+    const cVal = url.searchParams.get('c') || url.searchParams.get('utm_campaign') || url.searchParams.get('af_c_id');
+    if (cVal) return cVal;
+  } catch {}
+
+  return item.utmCampaign || '-';
+}
+
 export default function HistoryTable() {
   const [links, setLinks] = useState<LinkRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,10 +49,12 @@ export default function HistoryTable() {
   }, []);
 
   const filteredLinks = links.filter((link) => {
+    const campaignName = getCampaignDisplayName(link);
     const matchesSearch =
       link.finalLink.toLowerCase().includes(searchTerm.toLowerCase()) ||
       link.createdByName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (link.utmCampaign && link.utmCampaign.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      campaignName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (link.utmSource && link.utmSource.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (link.mediaSource && link.mediaSource.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesType = selectedType === 'ALL' || link.linkType === selectedType;
@@ -96,7 +115,7 @@ export default function HistoryTable() {
 
       {/* History Table matching Design System */}
       <div className="overflow-hidden border border-[#deded7] rounded-[18px] bg-white">
-        <div className="hidden md:grid grid-cols-[100px_140px_1fr_1.5fr_130px_120px] gap-4 items-center p-4 bg-[#20201c] text-white text-[11px] font-extrabold uppercase tracking-wider">
+        <div className="hidden md:grid grid-cols-[90px_130px_180px_1fr_130px_120px] gap-4 items-center p-4 bg-[#20201c] text-white text-[11px] font-extrabold uppercase tracking-wider">
           <span>Loại</span>
           <span>Người tạo</span>
           <span>Chiến dịch</span>
@@ -118,7 +137,7 @@ export default function HistoryTable() {
           filteredLinks.map((item) => (
             <div
               key={item.id}
-              className="flex flex-col md:grid md:grid-cols-[100px_140px_1fr_1.5fr_130px_120px] gap-2 md:gap-4 items-start md:items-center p-4 border-b border-[#deded7] last:border-0 text-xs hover:bg-[#f9f9f6] transition-colors"
+              className="flex flex-col md:grid md:grid-cols-[90px_130px_180px_1fr_130px_120px] gap-2 md:gap-4 items-start md:items-center p-4 border-b border-[#deded7] last:border-0 text-xs hover:bg-[#f9f9f6] transition-colors"
             >
               <div>
                 <span className="inline-flex px-2.5 py-1 bg-[#fff3bd] text-[#20201c] rounded-full text-[10px] font-black uppercase">
@@ -132,16 +151,16 @@ export default function HistoryTable() {
               </div>
 
               <div>
-                <strong className="font-bold text-[#20201c]">
-                  {item.utmCampaign || item.afAdset || item.mediaSource || '-'}
+                <strong className="font-bold text-[#20201c] break-all">
+                  {getCampaignDisplayName(item)}
                 </strong>
-                <span className="block text-[10px] text-[#71716a]">
+                <span className="block text-[10px] text-[#71716a] break-all">
                   {item.utmSource || item.mediaSource || '-'} / {item.utmMedium || item.afChannel || '-'}
                 </span>
               </div>
 
-              <div className="w-full overflow-hidden">
-                <code className="block font-mono text-[11px] text-[#71716a] truncate max-w-full" title={item.finalLink}>
+              <div className="w-full overflow-hidden break-all">
+                <code className="block font-mono text-[11px] text-[#20201c] font-bold break-all whitespace-pre-wrap select-all leading-relaxed" title={item.finalLink}>
                   {item.finalLink}
                 </code>
               </div>
