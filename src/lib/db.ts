@@ -10,6 +10,8 @@ if (process.env.DATABASE_URL) {
     connectionString: process.env.DATABASE_URL,
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   });
+  // Auto-initialize PostgreSQL tables and initial seeds on first load
+  initDbSchema().catch((err) => console.error('Postgres Schema Auto-Init Warning:', err));
 }
 
 // Serverless environments (Netlify, Vercel, AWS Lambda) have read-only /var/task filesystem.
@@ -237,7 +239,7 @@ export async function setFieldMode(categoryType: string, mode: FieldMode): Promi
   return getFieldConfigs();
 }
 
-// Ensure database tables exist
+// Ensure database tables exist and auto-seed initial catalog items on PostgreSQL
 export async function initDbSchema() {
   if (!pool) return;
   const client = await pool.connect();
@@ -300,6 +302,19 @@ export async function initDbSchema() {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // Auto-seed initial catalog items if PostgreSQL catalogs table is empty
+    const catCheck = await client.query('SELECT COUNT(*) FROM catalogs');
+    if (parseInt(catCheck.rows[0].count, 10) === 0) {
+      for (const item of INITIAL_CATALOG_SEEDS) {
+        await client.query(
+          `INSERT INTO catalogs (link_type, category_type, value, description, is_strict, usage_count)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           ON CONFLICT DO NOTHING`,
+          [item.linkType || 'BOTH', item.categoryType, item.value, item.description || null, item.isStrict || false, item.usageCount || 1]
+        );
+      }
+    }
   } catch (err) {
     console.error('Postgres Schema Init Warning:', err);
   } finally {
