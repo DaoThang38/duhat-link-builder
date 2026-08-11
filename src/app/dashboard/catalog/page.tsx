@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { CatalogItem } from '@/types';
-import { Plus, Edit2, Trash2, X, Check, AlertCircle, Sparkles, Lock, Unlock, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Check, AlertCircle, Sparkles, Lock, Unlock, Search, RefreshCw } from 'lucide-react';
 
 export default function CatalogPage() {
   const [catalogs, setCatalogs] = useState<CatalogItem[]>([]);
@@ -61,6 +61,11 @@ export default function CatalogPage() {
 
   useEffect(() => {
     fetchCatalogs();
+
+    // Auto re-fetch when user switches back to this tab so team additions appear instantly
+    const handleFocus = () => fetchCatalogs();
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
   const handleToggleFieldMode = async (categoryKey: string) => {
@@ -267,6 +272,15 @@ export default function CatalogPage() {
           </div>
 
           <div className="flex items-center gap-3 w-full md:w-auto">
+            <button
+              onClick={fetchCatalogs}
+              title="Tải lại toàn bộ danh mục từ cơ sở dữ liệu dùng chung"
+              className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-white/20"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <span>Tải lại</span>
+            </button>
+
             <button
               onClick={() => openAddModal('source')}
               className="px-5 py-2.5 bg-[#ffcc00] hover:bg-[#ebd217] text-[#20201c] rounded-full text-xs font-black transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer border-0 w-full md:w-auto flex-shrink-0"
