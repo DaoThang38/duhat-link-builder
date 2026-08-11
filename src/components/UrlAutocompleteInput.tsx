@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, History, Globe } from 'lucide-react';
+import { ChevronDown, History, Globe, X } from 'lucide-react';
 
 interface UrlAutocompleteInputProps {
   label: string;
@@ -94,9 +94,23 @@ export default function UrlAutocompleteInput({
           }}
           onFocus={() => setIsOpen(true)}
           placeholder={placeholder || (linkType === 'ONELINK' ? 'https://duhat.onelink.me/abc1' : 'https://duhat.vn/landing-page')}
-          className="w-full pr-24"
+          className={`w-full ${recentUrls.length > 0 ? (value ? 'pr-32' : 'pr-24') : (value ? 'pr-10' : '')}`}
           autoComplete="url"
         />
+
+        {value && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onChange('');
+            }}
+            className={`absolute ${recentUrls.length > 0 ? 'right-28' : 'right-3'} top-1/2 -translate-y-1/2 text-[#a1a19a] hover:text-[#b42318] border-0 bg-transparent cursor-pointer p-1 transition-colors`}
+            title="Xóa nhanh URL"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
 
         {recentUrls.length > 0 && (
           <button

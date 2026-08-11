@@ -6,7 +6,7 @@ import AutocompleteInput from './AutocompleteInput';
 import UrlAutocompleteInput from './UrlAutocompleteInput';
 import ConfirmModal from './ConfirmModal';
 import { generateUtmUrl, generateOneLinkUrl } from '@/lib/link-generator';
-import { Copy, Check, AlertCircle, ExternalLink, Link as LinkIcon, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Copy, Check, AlertCircle, ExternalLink, Link as LinkIcon, Sparkles, CheckCircle2, RotateCcw, Trash2 } from 'lucide-react';
 
 interface LinkBuilderFormProps {
   currentUser: User;
@@ -98,6 +98,31 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
     deepLinkValue,
     isRetargeting,
   ]);
+
+  const handleResetForm = () => {
+    setUtmUrl('');
+    setUtmSource('');
+    setUtmMedium('');
+    setUtmCampaign('');
+    setUtmId('');
+    setUtmContent('');
+    setUtmTerm('');
+
+    setOneLinkTemplate('https://duhat.onelink.me/abc1');
+    setMediaSource('');
+    setCampaignName('');
+    setChannel('');
+    setCampaignId('');
+    setAdGroup('');
+    setAdName('');
+    setKeywords('');
+    setDeepLinkValue('');
+    setIsRetargeting(false);
+
+    setErrorMessage('');
+    setDuplicateInfo(null);
+    setCreatedLinkRecord(null);
+  };
 
   const handleOpenConfirm = (e: React.FormEvent) => {
     e.preventDefault();
@@ -225,19 +250,30 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
 
       {/* Success Notification Banner */}
       {createdLinkRecord && (
-        <div className="p-4 bg-[#eaf8ef] border border-[#176b46]/30 rounded-[14px] text-[#176b46] font-bold text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm animate-pulse">
+        <div className="p-4 bg-[#eaf8ef] border border-[#176b46]/30 rounded-[14px] text-[#176b46] font-bold text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
           <div className="flex items-center space-x-2">
             <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-[#176b46]" />
             <span>🎉 Tạo link thành công! Link đã được kiểm tra trùng lặp và lưu vào hệ thống.</span>
           </div>
-          <button
-            type="button"
-            onClick={() => handleCopyLink(createdLinkRecord.finalLink)}
-            className="btn yellow text-xs min-h-[34px] px-3.5 flex-shrink-0"
-          >
-            <Copy className="w-3.5 h-3.5" />
-            <span>{copied ? 'Đã sao chép!' : 'Sao chép link ngay'}</span>
-          </button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => handleCopyLink(createdLinkRecord.finalLink)}
+              className="btn yellow text-xs min-h-[34px] px-3.5"
+            >
+              <Copy className="w-3.5 h-3.5" />
+              <span>{copied ? 'Đã sao chép!' : 'Sao chép link'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleResetForm}
+              className="btn secondary text-xs min-h-[34px] px-3 bg-white"
+              title="Xóa nhanh form để tạo link tiếp theo"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Tạo link tiếp</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -493,9 +529,19 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
           )}
         </div>
 
-        {/* Action Button */}
-        <div className="flex justify-end pt-2">
-          <button type="submit" className="btn primary">
+        {/* Action Buttons */}
+        <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-2">
+          <button
+            type="button"
+            onClick={handleResetForm}
+            className="w-full sm:w-auto btn secondary text-xs min-h-[44px] px-4 text-[#b42318] border-[#deded7] hover:bg-[#fff0ed] hover:border-[#fecdca] transition-colors"
+            title="Xóa tất cả các ô nhập liệu để bắt đầu điền link mới"
+          >
+            <RotateCcw className="w-4 h-4 text-[#b42318]" />
+            <span>Xóa form để điền link tiếp</span>
+          </button>
+
+          <button type="submit" className="w-full sm:w-auto btn primary min-h-[44px]">
             <span>Xác nhận &amp; tạo link</span>
             <span className="arrow">→</span>
           </button>
