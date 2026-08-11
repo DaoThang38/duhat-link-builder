@@ -2,6 +2,7 @@ import { Pool } from 'pg';
 import { User, LinkRecord, CatalogItem } from '@/types';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
 let pool: Pool | null = null;
 
@@ -112,11 +113,12 @@ async function ensurePostgresSeeds() {
   if (!pool || hasPostgresSeeded) return;
   try {
     for (const item of INITIAL_CATALOG_SEEDS) {
+      const id = item.id || crypto.randomUUID();
       await pool.query(
-        `INSERT INTO catalogs (link_type, category_type, value, description, is_strict, usage_count)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         ON CONFLICT DO NOTHING`,
-        [item.linkType || 'BOTH', item.categoryType, item.value, item.description || null, item.isStrict || false, item.usageCount || 1]
+        `INSERT INTO catalogs (id, link_type, category_type, value, description, is_strict, usage_count)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (link_type, category_type, value) DO NOTHING`,
+        [id, item.linkType || 'BOTH', item.categoryType, item.value, item.description || null, item.isStrict || false, item.usageCount || 1]
       );
     }
     hasPostgresSeeded = true;
@@ -265,7 +267,7 @@ export async function initDbSchema() {
   try {
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        id VARCHAR(255) PRIMARY KEY,
         email VARCHAR(255) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
         full_name VARCHAR(100) NOT NULL,
@@ -279,7 +281,7 @@ export async function initDbSchema() {
       );
 
       CREATE TABLE IF NOT EXISTS catalogs (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        id VARCHAR(255) PRIMARY KEY,
         link_type VARCHAR(20) DEFAULT 'BOTH',
         category_type VARCHAR(50) NOT NULL,
         value VARCHAR(255) NOT NULL,
@@ -287,12 +289,12 @@ export async function initDbSchema() {
         is_strict BOOLEAN DEFAULT FALSE,
         usage_count INT DEFAULT 1,
         last_used_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        created_by_user_id UUID,
+        created_by_user_id VARCHAR(255),
         CONSTRAINT unq_cat_link_type_val UNIQUE (link_type, category_type, value)
       );
 
       CREATE TABLE IF NOT EXISTS link_history (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        id VARCHAR(255) PRIMARY KEY,
         link_type VARCHAR(20) NOT NULL,
         original_url TEXT NOT NULL,
         final_link TEXT NOT NULL,
@@ -311,7 +313,7 @@ export async function initDbSchema() {
         af_keywords VARCHAR(150),
         deep_link_value VARCHAR(255),
         is_retargeting BOOLEAN DEFAULT FALSE,
-        created_by_user_id UUID NOT NULL,
+        created_by_user_id VARCHAR(255) NOT NULL,
         created_by_name VARCHAR(100) NOT NULL,
         created_by_email VARCHAR(255) NOT NULL,
         sync_status VARCHAR(20) DEFAULT 'PENDING',
@@ -321,6 +323,17 @@ export async function initDbSchema() {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // Alter existing table columns to VARCHAR(255) if they were created with UUID previously
+    try {
+      await client.query(`
+        ALTER TABLE users ALTER COLUMN id TYPE VARCHAR(255);
+        ALTER TABLE catalogs ALTER COLUMN id TYPE VARCHAR(255);
+        ALTER TABLE catalogs ALTER COLUMN created_by_user_id TYPE VARCHAR(255);
+        ALTER TABLE link_history ALTER COLUMN id TYPE VARCHAR(255);
+        ALTER TABLE link_history ALTER COLUMN created_by_user_id TYPE VARCHAR(255);
+      `);
+    } catch {}
 
     await ensurePostgresSeeds();
   } catch (err) {
@@ -357,16 +370,17 @@ export async function getUserByEmail(email: string): Promise<{ user: User; passw
 
 export async function createUser(email: string, passwordHash: string, fullName: string): Promise<User> {
   const normEmail = email.toLowerCase().trim();
+  const userId = crypto.randomUUID();
   if (pool) {
     const countRes = await pool.query('SELECT COUNT(*) FROM users');
     const userCount = parseInt(countRes.rows[0].count, 10);
     const role = userCount === 0 ? 'ADMIN' : 'MEMBER';
 
     const insertRes = await pool.query(
-      `INSERT INTO users (email, password_hash, full_name, role)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO users (id, email, password_hash, full_name, role)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING id, email, full_name, role, created_at`,
-      [normEmail, passwordHash, fullName.trim(), role]
+      [userId, normEmail, passwordHash, fullName.trim(), role]
     );
     const row = insertRes.rows[0];
     return {
@@ -380,7 +394,7 @@ export async function createUser(email: string, passwordHash: string, fullName: 
     const db = getLocalDB();
     const role = db.users.length === 0 ? 'ADMIN' : 'MEMBER';
     const newUser: User = {
-      id: Buffer.from(Math.random().toString()).toString('hex').slice(0, 16),
+      id: userId,
       email: normEmail,
       fullName: fullName.trim(),
       role,
@@ -406,6 +420,7 @@ export async function getLinkByHash(linkHash: string): Promise<LinkRecord | null
 }
 
 export async function createLinkRecord(record: Omit<LinkRecord, 'id' | 'createdAt'>): Promise<LinkRecord> {
+  const linkId = crypto.randomUUID();
   if (pool) {
     const existing = await getLinkByHash(record.linkHash);
     if (existing) {
@@ -416,17 +431,18 @@ export async function createLinkRecord(record: Omit<LinkRecord, 'id' | 'createdA
 
     const res = await pool.query(
       `INSERT INTO link_history (
-        link_type, original_url, final_link, link_hash,
+        id, link_type, original_url, final_link, link_hash,
         utm_source, utm_medium, utm_campaign, utm_id, utm_content, utm_term,
         media_source, af_channel, af_c_id, af_adset, af_ad, af_keywords, deep_link_value, is_retargeting,
         created_by_user_id, created_by_name, created_by_email, sync_status, sync_attempts, last_sync_error
       ) VALUES (
-        $1, $2, $3, $4,
-        $5, $6, $7, $8, $9, $10,
-        $11, $12, $13, $14, $15, $16, $17, $18,
-        $19, $20, $21, $22, $23, $24
+        $1, $2, $3, $4, $5,
+        $6, $7, $8, $9, $10, $11,
+        $12, $13, $14, $15, $16, $17, $18, $19,
+        $20, $21, $22, $23, $24, $25
       ) RETURNING *`,
       [
+        linkId,
         record.linkType,
         record.originalUrl,
         record.finalLink,
@@ -465,7 +481,7 @@ export async function createLinkRecord(record: Omit<LinkRecord, 'id' | 'createdA
 
     const newRecord: LinkRecord = {
       ...record,
-      id: Buffer.from(Math.random().toString()).toString('hex').slice(0, 16),
+      id: linkId,
       createdAt: new Date().toISOString(),
     };
     db.links.unshift(newRecord);
@@ -539,14 +555,15 @@ export async function touchCatalogItem(rawCategoryType: string, value: string, l
   const trimmed = value.trim();
   if (!trimmed) return;
   const normCategory = normalizeCategoryType(rawCategoryType);
+  const catId = crypto.randomUUID();
 
   if (pool) {
     await pool.query(
-      `INSERT INTO catalogs (link_type, category_type, value, usage_count, last_used_at, created_by_user_id)
-       VALUES ($1, $2, $3, 1, CURRENT_TIMESTAMP, $4)
+      `INSERT INTO catalogs (id, link_type, category_type, value, usage_count, last_used_at, created_by_user_id)
+       VALUES ($1, $2, $3, $4, 1, CURRENT_TIMESTAMP, $5)
        ON CONFLICT (link_type, category_type, value)
        DO UPDATE SET usage_count = catalogs.usage_count + 1, last_used_at = CURRENT_TIMESTAMP`,
-      [linkType, normCategory, trimmed, userId || null]
+      [catId, linkType, normCategory, trimmed, userId || null]
     );
   } else {
     const db = getLocalDB();
@@ -558,7 +575,7 @@ export async function touchCatalogItem(rawCategoryType: string, value: string, l
       existing.lastUsedAt = new Date().toISOString();
     } else {
       db.catalogs.push({
-        id: Buffer.from(Math.random().toString()).toString('hex').slice(0, 16),
+        id: catId,
         linkType: 'BOTH',
         categoryType: normCategory,
         value: trimmed,
@@ -594,15 +611,16 @@ export async function addCatalogItem(
   const trimmedVal = value.trim();
   const normCategory = normalizeCategoryType(categoryType);
   const targetLinkType = linkType || 'BOTH';
+  const catId = crypto.randomUUID();
 
   if (pool) {
     const res = await pool.query(
-      `INSERT INTO catalogs (link_type, category_type, value, description, is_strict, created_by_user_id)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO catalogs (id, link_type, category_type, value, description, is_strict, created_by_user_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT (link_type, category_type, value)
-       DO UPDATE SET description = COALESCE($4, catalogs.description), is_strict = $5, last_used_at = CURRENT_TIMESTAMP
+       DO UPDATE SET description = COALESCE($5, catalogs.description), is_strict = $6, last_used_at = CURRENT_TIMESTAMP
        RETURNING *`,
-      [targetLinkType, normCategory, trimmedVal, description?.trim() || null, isStrict, userId || null]
+      [catId, targetLinkType, normCategory, trimmedVal, description?.trim() || null, isStrict, userId || null]
     );
     return mapPgCatalogRow(res.rows[0]);
   } else {
@@ -621,7 +639,7 @@ export async function addCatalogItem(
     }
 
     const newItem: CatalogItem = {
-      id: Buffer.from(Math.random().toString()).toString('hex').slice(0, 16),
+      id: catId,
       linkType: 'BOTH',
       categoryType: normCategory,
       value: trimmedVal,
