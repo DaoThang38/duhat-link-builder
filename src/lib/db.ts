@@ -101,6 +101,7 @@ const INITIAL_CATALOG_SEEDS: CatalogItem[] = [
 ];
 
 function getLocalDB(): LocalDBData {
+  let db: LocalDBData;
   if (!fs.existsSync(LOCAL_DB_FILE)) {
     let initial: LocalDBData = {
       users: [],
@@ -110,7 +111,6 @@ function getLocalDB(): LocalDBData {
       links: [],
     };
 
-    // If root seed file exists in project, copy from root seed file
     if (fs.existsSync(ROOT_SEED_FILE) && ROOT_SEED_FILE !== LOCAL_DB_FILE) {
       try {
         const raw = fs.readFileSync(ROOT_SEED_FILE, 'utf8');
@@ -123,40 +123,45 @@ function getLocalDB(): LocalDBData {
     } catch (e) {
       console.warn('Could not write local db file:', e);
     }
-    return initial;
+    db = initial;
+  } else {
+    try {
+      const raw = fs.readFileSync(LOCAL_DB_FILE, 'utf8');
+      db = JSON.parse(raw);
+    } catch {
+      db = { users: [], passwords: {}, catalogs: INITIAL_CATALOG_SEEDS, fieldConfigs: DEFAULT_FIELD_CONFIGS, links: [] };
+    }
   }
-  try {
-    const raw = fs.readFileSync(LOCAL_DB_FILE, 'utf8');
-    const db = JSON.parse(raw);
-    let updated = false;
 
-    // Ensure all items have linkType
-    if (db.catalogs) {
-      db.catalogs.forEach((c: any) => {
-        if (!c.linkType) {
-          c.linkType = 'BOTH';
-          updated = true;
-        }
-      });
-    }
+  // Deduplicate catalogs by categoryType + value (case-insensitive)
+  if (db.catalogs && db.catalogs.length > 0) {
+    const seenMap = new Map<string, CatalogItem>();
+    let hasDuplicates = false;
 
-    if (!db.catalogs || db.catalogs.length < 15) {
-      db.catalogs = INITIAL_CATALOG_SEEDS;
-      updated = true;
-    }
-    if (!db.fieldConfigs) {
-      db.fieldConfigs = DEFAULT_FIELD_CONFIGS;
-      updated = true;
-    }
-    if (updated) {
+    db.catalogs.forEach((c) => {
+      const normCat = normalizeCategoryType(c.categoryType);
+      const key = `${normCat}:${c.value.toLowerCase().trim()}`;
+      if (!c.linkType) c.linkType = 'BOTH';
+
+      if (seenMap.has(key)) {
+        hasDuplicates = true;
+        const existing = seenMap.get(key)!;
+        existing.usageCount = Math.max(existing.usageCount, c.usageCount);
+        if (c.description && !existing.description) existing.description = c.description;
+      } else {
+        seenMap.set(key, c);
+      }
+    });
+
+    if (hasDuplicates) {
+      db.catalogs = Array.from(seenMap.values());
       try {
         fs.writeFileSync(LOCAL_DB_FILE, JSON.stringify(db, null, 2));
       } catch {}
     }
-    return db;
-  } catch {
-    return { users: [], passwords: {}, catalogs: INITIAL_CATALOG_SEEDS, fieldConfigs: DEFAULT_FIELD_CONFIGS, links: [] };
   }
+
+  return db;
 }
 
 function saveLocalDB(data: LocalDBData) {
@@ -510,14 +515,16 @@ export async function touchCatalogItem(rawCategoryType: string, value: string, l
     );
   } else {
     const db = getLocalDB();
-    const existing = db.catalogs.find((c) => normalizeCategoryType(c.categoryType) === normCategory && c.value.toLowerCase() === trimmed.toLowerCase());
+    const existing = db.catalogs.find(
+      (c) => normalizeCategoryType(c.categoryType) === normCategory && c.value.toLowerCase() === trimmed.toLowerCase()
+    );
     if (existing) {
       existing.usageCount += 1;
       existing.lastUsedAt = new Date().toISOString();
     } else {
       db.catalogs.push({
         id: Buffer.from(Math.random().toString()).toString('hex').slice(0, 16),
-        linkType,
+        linkType: 'BOTH',
         categoryType: normCategory,
         value: trimmed,
         isStrict: false,
@@ -541,7 +548,7 @@ export async function getAllCatalogs(): Promise<CatalogItem[]> {
 }
 
 export async function addCatalogItem(
-  linkType: 'UTM' | 'ONELINK' | 'BOTH',
+  linkType: 'UTM' | 'ONELINK' | 'BOTH' = 'BOTH',
   categoryType: string,
   value: string,
   description?: string,
@@ -550,20 +557,36 @@ export async function addCatalogItem(
 ): Promise<CatalogItem> {
   const trimmedVal = value.trim();
   const normCategory = normalizeCategoryType(categoryType);
+  const targetLinkType = linkType || 'BOTH';
 
   if (pool) {
     const res = await pool.query(
       `INSERT INTO catalogs (link_type, category_type, value, description, is_strict, created_by_user_id)
        VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (link_type, category_type, value)
+       DO UPDATE SET description = COALESCE($4, catalogs.description), is_strict = $5, last_used_at = CURRENT_TIMESTAMP
        RETURNING *`,
-      [linkType, normCategory, trimmedVal, description?.trim() || null, isStrict, userId || null]
+      [targetLinkType, normCategory, trimmedVal, description?.trim() || null, isStrict, userId || null]
     );
     return mapPgCatalogRow(res.rows[0]);
   } else {
     const db = getLocalDB();
+    const existing = db.catalogs.find(
+      (c) => normalizeCategoryType(c.categoryType) === normCategory && c.value.toLowerCase() === trimmedVal.toLowerCase()
+    );
+
+    if (existing) {
+      existing.linkType = 'BOTH';
+      if (description?.trim()) existing.description = description.trim();
+      existing.isStrict = isStrict;
+      existing.lastUsedAt = new Date().toISOString();
+      saveLocalDB(db);
+      return existing;
+    }
+
     const newItem: CatalogItem = {
       id: Buffer.from(Math.random().toString()).toString('hex').slice(0, 16),
-      linkType,
+      linkType: 'BOTH',
       categoryType: normCategory,
       value: trimmedVal,
       description: description?.trim() || '',
@@ -586,13 +609,15 @@ export async function updateCatalogItem(
   isStrict = false
 ): Promise<CatalogItem | null> {
   const trimmedVal = value.trim();
+  const targetLinkType = linkType || 'BOTH';
+
   if (pool) {
     const res = await pool.query(
       `UPDATE catalogs
        SET link_type = $1, value = $2, description = $3, is_strict = $4
        WHERE id = $5
        RETURNING *`,
-      [linkType, trimmedVal, description?.trim() || null, isStrict, id]
+      [targetLinkType, trimmedVal, description?.trim() || null, isStrict, id]
     );
     if (res.rows.length === 0) return null;
     return mapPgCatalogRow(res.rows[0]);
@@ -600,7 +625,7 @@ export async function updateCatalogItem(
     const db = getLocalDB();
     const item = db.catalogs.find((c) => c.id === id);
     if (!item) return null;
-    item.linkType = linkType;
+    item.linkType = targetLinkType;
     item.value = trimmedVal;
     item.description = description?.trim() || '';
     item.isStrict = isStrict;
