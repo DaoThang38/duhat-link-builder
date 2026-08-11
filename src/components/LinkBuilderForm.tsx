@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { LinkType, User, DuplicateLinkErrorResponse } from '@/types';
 import AutocompleteInput from './AutocompleteInput';
+import UrlAutocompleteInput from './UrlAutocompleteInput';
 import ConfirmModal from './ConfirmModal';
 import { generateUtmUrl, generateOneLinkUrl } from '@/lib/link-generator';
 import { Copy, Check, AlertCircle, ExternalLink, Link as LinkIcon, Sparkles, CheckCircle2 } from 'lucide-react';
@@ -125,28 +126,28 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
     const payload =
       activeTab === 'UTM'
         ? {
-            linkType: 'UTM',
-            originalUrl: utmUrl,
-            utmSource,
-            utmMedium,
-            utmCampaign,
-            utmId,
-            utmContent,
-            utmTerm,
-          }
+          linkType: 'UTM',
+          originalUrl: utmUrl,
+          utmSource,
+          utmMedium,
+          utmCampaign,
+          utmId,
+          utmContent,
+          utmTerm,
+        }
         : {
-            linkType: 'ONELINK',
-            oneLinkTemplate,
-            mediaSource,
-            campaignName,
-            channel,
-            campaignId,
-            adGroup,
-            adName,
-            keywords,
-            deepLinkValue,
-            isRetargeting,
-          };
+          linkType: 'ONELINK',
+          oneLinkTemplate,
+          mediaSource,
+          campaignName,
+          channel,
+          campaignId,
+          adGroup,
+          adName,
+          keywords,
+          deepLinkValue,
+          isRetargeting,
+        };
 
     try {
       const res = await fetch('/api/links', {
@@ -227,7 +228,7 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
         <div className="p-4 bg-[#eaf8ef] border border-[#176b46]/30 rounded-[14px] text-[#176b46] font-bold text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm animate-pulse">
           <div className="flex items-center space-x-2">
             <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-[#176b46]" />
-            <span>🎉 Tạo link thành công! Link đã được kiểm tra SHA-256 trùng lặp và lưu vào hệ thống.</span>
+            <span>🎉 Tạo link thành công! Link đã được kiểm tra trùng lặp và lưu vào hệ thống.</span>
           </div>
           <button
             type="button"
@@ -285,19 +286,14 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
       <form onSubmit={handleOpenConfirm} className="space-y-6">
         {activeTab === 'UTM' ? (
           <div className="space-y-5">
-            <div className="duhat-field">
-              <label>
-                URL website <span className="req">*</span>
-              </label>
-              <input
-                type="url"
-                required
-                value={utmUrl}
-                onChange={(e) => setUtmUrl(e.target.value)}
-                placeholder="https://duhat.vn/landing-page"
-              />
-              <p className="duhat-help">URL đầy đủ bắt đầu bằng http:// hoặc https://.</p>
-            </div>
+            <UrlAutocompleteInput
+              label="URL website"
+              value={utmUrl}
+              onChange={setUtmUrl}
+              required
+              placeholder="https://duhat.vn/landing-page"
+              helpText="URL đầy đủ bắt đầu bằng http:// hoặc https://. Tự động gợi ý từ lịch sử."
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <AutocompleteInput
@@ -362,19 +358,14 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
         ) : (
           /* AppsFlyer OneLink Form */
           <div className="space-y-5">
-            <div className="duhat-field">
-              <label>
-                OneLink Template <span className="req">*</span>
-              </label>
-              <input
-                type="url"
-                required
-                value={oneLinkTemplate}
-                onChange={(e) => setOneLinkTemplate(e.target.value)}
-                placeholder="https://duhat.onelink.me/abc1"
-              />
-              <p className="duhat-help">Link mẫu AppsFlyer được cấu hình sẵn.</p>
-            </div>
+            <UrlAutocompleteInput
+              label="OneLink Template"
+              value={oneLinkTemplate}
+              onChange={setOneLinkTemplate}
+              required
+              placeholder="https://duhat.onelink.me/abc1"
+              helpText="Link mẫu AppsFlyer được cấu hình sẵn. Tự động gợi ý từ lịch sử."
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <AutocompleteInput
