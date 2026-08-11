@@ -83,7 +83,11 @@ export default function Navbar({ user, onLogout }: NavbarProps) {
             >
               <UserIcon className="w-3.5 h-3.5 text-[#20201c]" />
               <span>{user.fullName}</span>
-              {user.role === 'ADMIN' && <ShieldCheck className="w-3.5 h-3.5 text-[#8a6200]" title="Tài khoản Admin" />}
+              {user.role === 'ADMIN' && (
+                <span title="Tài khoản Admin">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#8a6200]" />
+                </span>
+              )}
               <Edit3 className="w-3 h-3 text-[#71716a] group-hover:text-[#20201c] transition-colors ml-0.5" />
             </button>
 
