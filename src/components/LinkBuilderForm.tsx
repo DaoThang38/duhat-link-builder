@@ -5,7 +5,7 @@ import { LinkType, User, DuplicateLinkErrorResponse } from '@/types';
 import AutocompleteInput from './AutocompleteInput';
 import ConfirmModal from './ConfirmModal';
 import { generateUtmUrl, generateOneLinkUrl } from '@/lib/link-generator';
-import { Copy, Check, AlertCircle, ExternalLink, Link as LinkIcon, Sparkles } from 'lucide-react';
+import { Copy, Check, AlertCircle, ExternalLink, Link as LinkIcon, Sparkles, CheckCircle2 } from 'lucide-react';
 
 interface LinkBuilderFormProps {
   currentUser: User;
@@ -221,6 +221,24 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
           <span className="font-extrabold text-xs text-[#20201c]">{currentUser.fullName}</span>
         </div>
       </div>
+
+      {/* Success Notification Banner */}
+      {createdLinkRecord && (
+        <div className="p-4 bg-[#eaf8ef] border border-[#176b46]/30 rounded-[14px] text-[#176b46] font-bold text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm animate-pulse">
+          <div className="flex items-center space-x-2">
+            <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-[#176b46]" />
+            <span>🎉 Tạo link thành công! Link đã được kiểm tra SHA-256 trùng lặp và lưu vào hệ thống.</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleCopyLink(createdLinkRecord.finalLink)}
+            className="btn yellow text-xs min-h-[34px] px-3.5 flex-shrink-0"
+          >
+            <Copy className="w-3.5 h-3.5" />
+            <span>{copied ? 'Đã sao chép!' : 'Sao chép link ngay'}</span>
+          </button>
+        </div>
+      )}
 
       {/* Error Banner */}
       {errorMessage && (

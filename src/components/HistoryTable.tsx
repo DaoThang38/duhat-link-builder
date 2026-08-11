@@ -133,7 +133,7 @@ export default function HistoryTable() {
 
               <div>
                 <strong className="font-bold text-[#20201c]">
-                  {item.utmCampaign || item.afAdset || '-'}
+                  {item.utmCampaign || item.afAdset || item.mediaSource || '-'}
                 </strong>
                 <span className="block text-[10px] text-[#71716a]">
                   {item.utmSource || item.mediaSource || '-'} / {item.utmMedium || item.afChannel || '-'}
