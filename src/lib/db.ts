@@ -106,6 +106,25 @@ const INITIAL_CATALOG_SEEDS: CatalogItem[] = [
   { id: 'c43', linkType: 'BOTH', categoryType: 'keyword', value: 'khao_sat_truc_tuyen', description: 'Từ khóa tìm kiếm khảo sát trực tuyến', isStrict: false, usageCount: 8, lastUsedAt: new Date().toISOString() },
 ];
 
+async function ensurePostgresSeeds() {
+  if (!pool) return;
+  try {
+    const check = await pool.query('SELECT COUNT(*) FROM catalogs');
+    if (parseInt(check.rows[0].count, 10) < 15) {
+      for (const item of INITIAL_CATALOG_SEEDS) {
+        await pool.query(
+          `INSERT INTO catalogs (link_type, category_type, value, description, is_strict, usage_count)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           ON CONFLICT (link_type, category_type, value) DO NOTHING`,
+          [item.linkType || 'BOTH', item.categoryType, item.value, item.description || null, item.isStrict || false, item.usageCount || 1]
+        );
+      }
+    }
+  } catch (e) {
+    console.error('Postgres auto seed error:', e);
+  }
+}
+
 function getLocalDB(): LocalDBData {
   if (globalThis.__DUHAT_LOCAL_DB__) {
     return globalThis.__DUHAT_LOCAL_DB__;
@@ -303,18 +322,7 @@ export async function initDbSchema() {
       );
     `);
 
-    // Auto-seed initial catalog items if PostgreSQL catalogs table is empty
-    const catCheck = await client.query('SELECT COUNT(*) FROM catalogs');
-    if (parseInt(catCheck.rows[0].count, 10) === 0) {
-      for (const item of INITIAL_CATALOG_SEEDS) {
-        await client.query(
-          `INSERT INTO catalogs (link_type, category_type, value, description, is_strict, usage_count)
-           VALUES ($1, $2, $3, $4, $5, $6)
-           ON CONFLICT DO NOTHING`,
-          [item.linkType || 'BOTH', item.categoryType, item.value, item.description || null, item.isStrict || false, item.usageCount || 1]
-        );
-      }
-    }
+    await ensurePostgresSeeds();
   } catch (err) {
     console.error('Postgres Schema Init Warning:', err);
   } finally {
@@ -504,6 +512,8 @@ export async function updateLinkSyncStatus(id: string, status: 'SUCCESS' | 'FAIL
 export async function getCatalogItemsByCategory(rawCategoryType: string, linkType?: string): Promise<CatalogItem[]> {
   const normCategory = normalizeCategoryType(rawCategoryType);
   if (pool) {
+    await ensurePostgresSeeds();
+
     let query = 'SELECT * FROM catalogs WHERE category_type = $1';
     const params: any[] = [normCategory];
     if (linkType) {
@@ -564,6 +574,7 @@ export async function touchCatalogItem(rawCategoryType: string, value: string, l
 
 export async function getAllCatalogs(): Promise<CatalogItem[]> {
   if (pool) {
+    await ensurePostgresSeeds();
     const res = await pool.query('SELECT * FROM catalogs ORDER BY link_type ASC, category_type ASC, usage_count DESC');
     return res.rows.map(mapPgCatalogRow);
   } else {
