@@ -404,6 +404,56 @@ export async function createUser(email: string, passwordHash: string, fullName: 
   }
 }
 
+export async function updateUserName(userId: string, newFullName: string): Promise<User | null> {
+  const trimmedName = newFullName.trim();
+  if (!trimmedName) return null;
+
+  if (pool) {
+    const res = await pool.query(
+      `UPDATE users SET full_name = $1 WHERE id = $2 RETURNING id, email, full_name, role, created_at`,
+      [trimmedName, userId]
+    );
+    if (res.rows.length === 0) return null;
+    const row = res.rows[0];
+    return {
+      id: row.id,
+      email: row.email,
+      fullName: row.full_name,
+      role: row.role as any,
+      createdAt: row.created_at,
+    };
+  } else {
+    const db = getLocalDB();
+    const u = db.users.find((x) => x.id === userId);
+    if (!u) return null;
+    u.fullName = trimmedName;
+    saveLocalDB(db);
+    return u;
+  }
+}
+
+export async function getAllUsers(): Promise<User[]> {
+  if (pool) {
+    const res = await pool.query(`SELECT id, email, full_name, role, created_at FROM users ORDER BY created_at ASC`);
+    return res.rows.map((row) => ({
+      id: row.id,
+      email: row.email,
+      fullName: row.full_name,
+      role: row.role as any,
+      createdAt: row.created_at,
+    }));
+  } else {
+    const db = getLocalDB();
+    return db.users.map((u) => ({
+      id: u.id,
+      email: u.email,
+      fullName: u.fullName,
+      role: u.role,
+      createdAt: u.createdAt,
+    }));
+  }
+}
+
 // LINK OPERATIONS
 export async function getLinkByHash(linkHash: string): Promise<LinkRecord | null> {
   if (pool) {
