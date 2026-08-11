@@ -28,6 +28,10 @@ interface LocalDBData {
   links: LinkRecord[];
 }
 
+declare global {
+  var __DUHAT_LOCAL_DB__: LocalDBData | undefined;
+}
+
 const DEFAULT_FIELD_CONFIGS: Record<string, FieldMode> = {
   source: 'FREE',
   medium: 'FREE',
@@ -101,6 +105,10 @@ const INITIAL_CATALOG_SEEDS: CatalogItem[] = [
 ];
 
 function getLocalDB(): LocalDBData {
+  if (globalThis.__DUHAT_LOCAL_DB__) {
+    return globalThis.__DUHAT_LOCAL_DB__;
+  }
+
   let db: LocalDBData;
   if (!fs.existsSync(LOCAL_DB_FILE)) {
     let initial: LocalDBData = {
@@ -161,10 +169,12 @@ function getLocalDB(): LocalDBData {
     }
   }
 
+  globalThis.__DUHAT_LOCAL_DB__ = db;
   return db;
 }
 
 function saveLocalDB(data: LocalDBData) {
+  globalThis.__DUHAT_LOCAL_DB__ = data;
   try {
     fs.writeFileSync(LOCAL_DB_FILE, JSON.stringify(data, null, 2));
   } catch (e) {
@@ -636,60 +646,3 @@ export async function updateCatalogItem(
 
 export async function deleteCatalogItem(id: string): Promise<boolean> {
   if (pool) {
-    const res = await pool.query('DELETE FROM catalogs WHERE id = $1', [id]);
-    return (res.rowCount || 0) > 0;
-  } else {
-    const db = getLocalDB();
-    const idx = db.catalogs.findIndex((c) => c.id === id);
-    if (idx === -1) return false;
-    db.catalogs.splice(idx, 1);
-    saveLocalDB(db);
-    return true;
-  }
-}
-
-function mapPgLinkRow(row: any): LinkRecord {
-  return {
-    id: row.id,
-    linkType: row.link_type,
-    originalUrl: row.original_url,
-    finalLink: row.final_link,
-    linkHash: row.link_hash,
-    utmSource: row.utm_source,
-    utmMedium: row.utm_medium,
-    utmCampaign: row.utm_campaign,
-    utmId: row.utm_id,
-    utmContent: row.utm_content,
-    utmTerm: row.utm_term,
-    mediaSource: row.media_source,
-    afChannel: row.af_channel,
-    afCId: row.af_c_id,
-    afAdset: row.af_adset,
-    afAd: row.af_ad,
-    afKeywords: row.af_keywords,
-    deepLinkValue: row.deep_link_value,
-    isRetargeting: row.is_retargeting,
-    createdByUserId: row.created_by_user_id,
-    createdByName: row.created_by_name,
-    createdByEmail: row.created_by_email,
-    syncStatus: row.sync_status,
-    syncAttempts: row.sync_attempts,
-    lastSyncError: row.last_sync_error,
-    syncedAt: row.synced_at,
-    createdAt: row.created_at,
-  };
-}
-
-function mapPgCatalogRow(row: any): CatalogItem {
-  return {
-    id: row.id,
-    linkType: row.link_type || 'BOTH',
-    categoryType: row.category_type,
-    value: row.value,
-    description: row.description || '',
-    isStrict: row.is_strict,
-    usageCount: row.usage_count,
-    lastUsedAt: row.last_used_at,
-    createdByUserId: row.created_by_user_id,
-  };
-}
