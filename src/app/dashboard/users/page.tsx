@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { User } from '@/types';
-import Navbar from '@/components/Navbar';
 import { Search, ShieldCheck, User as UserIcon, Users, RefreshCw, Calendar, Mail } from 'lucide-react';
+
 
 export default function UsersPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -65,10 +65,8 @@ export default function UsersPage() {
   const memberCount = users.filter((u) => u.role === 'MEMBER').length;
 
   return (
-    <div className="min-h-screen bg-[#f4f4f0] text-[#20201c] font-sans antialiased">
-      <Navbar user={currentUser} />
+    <div className="space-y-6">
 
-      <main className="max-w-[1220px] mx-auto px-5 py-8 space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[#deded7] pb-4">
           <div>
@@ -213,7 +211,7 @@ export default function UsersPage() {
             </div>
           </>
         )}
-      </main>
     </div>
   );
 }
+
