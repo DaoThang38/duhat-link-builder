@@ -5,7 +5,7 @@ import { LinkRecord, User } from '@/types';
 import { useUser } from '@/context/UserContext';
 import SyncStatusBadge from './SyncStatusBadge';
 import UpdateOneLinkModal from './UpdateOneLinkModal';
-import { Search, Copy, Check, Filter, ExternalLink, RefreshCw, Calendar, User as UserIcon, RotateCcw, Edit3, Clock, CheckCircle2, AlertTriangle, XCircle, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { Search, Copy, Check, Filter, ExternalLink, RefreshCw, Calendar, User as UserIcon, RotateCcw, Edit3, Clock, CheckCircle2, AlertTriangle, XCircle, ChevronDown, ChevronUp, Trash2, FileSpreadsheet } from 'lucide-react';
 
 
 interface HistoryTableProps {
@@ -243,6 +243,10 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
     setIsUpdateModalOpen(true);
   };
 
+  const handleExportExcel = () => {
+    window.open('/api/links/export', '_blank');
+  };
+
   return (
     <div className="duhat-card space-y-6">
       {/* Clean Header */}
@@ -267,6 +271,15 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
           )}
 
           <button
+            onClick={handleExportExcel}
+            title="Xuất dữ liệu lịch sử ra file Excel (.xlsx)"
+            className="btn secondary text-xs min-h-[38px] px-3.5 bg-[#107c41] text-white border-[#107c41] hover:bg-[#0b5c30]"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span>Xuất Excel (.xlsx)</span>
+          </button>
+
+          <button
             onClick={fetchLinks}
             title="Tải lại danh sách"
             className="btn secondary text-xs min-h-[38px] px-3.5"
@@ -274,10 +287,9 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             <span>Tải lại</span>
           </button>
-
-
         </div>
       </div>
+
 
       {/* Multi-Dimensional Filter Bar */}
       <div className="p-4 bg-[#f9f9f6] border border-[#deded7] rounded-[16px] space-y-3">
