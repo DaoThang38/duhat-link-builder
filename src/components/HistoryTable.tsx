@@ -5,7 +5,8 @@ import { LinkRecord, User } from '@/types';
 import { useUser } from '@/context/UserContext';
 import SyncStatusBadge from './SyncStatusBadge';
 import UpdateOneLinkModal from './UpdateOneLinkModal';
-import { Search, Copy, Check, Filter, ExternalLink, RefreshCw, Calendar, User as UserIcon, RotateCcw, Edit3, Clock, CheckCircle2, AlertTriangle, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, Copy, Check, Filter, ExternalLink, RefreshCw, Calendar, User as UserIcon, RotateCcw, Edit3, Clock, CheckCircle2, AlertTriangle, XCircle, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+
 
 interface HistoryTableProps {
   currentUser?: User;
@@ -87,6 +88,39 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
 
   // Update Modal State
   const [editingRecord, setEditingRecord] = useState<LinkRecord | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteRecord = async (id: string) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa bản ghi này khỏi hệ thống?')) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/links/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Lỗi khi xóa bản ghi');
+      await fetchLinks();
+    } catch (err: any) {
+      alert(err.message || 'Không thể xóa bản ghi');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteLegacyOneLinks = async () => {
+    if (!confirm('Bạn có chắc chắn muốn dọn dẹp TOÀN BỘ các bản ghi OneLink kiểu cũ (các bản ghi tự sinh link trước đây) khỏi hệ thống?')) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch('/api/links', { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Lỗi khi dọn dẹp OneLink cũ');
+      alert(data.message);
+      await fetchLinks();
+    } catch (err: any) {
+      alert(err.message || 'Không thể dọn dẹp');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
 
   const fetchLinks = async () => {
@@ -232,6 +266,18 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
             </button>
           )}
 
+          {activeUser?.role === 'ADMIN' && (
+            <button
+              onClick={handleDeleteLegacyOneLinks}
+              disabled={isDeleting}
+              title="Xóa toàn bộ bản ghi OneLink tự sinh link kiểu cũ"
+              className="btn secondary text-xs min-h-[38px] px-3.5 text-[#b42318] border-[#fecdca] bg-[#fff0ed] hover:bg-[#fee4e2]"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Dọn dẹp OneLink cũ</span>
+            </button>
+          )}
+
           <button
             onClick={fetchLinks}
             title="Tải lại danh sách"
@@ -240,6 +286,7 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             <span>Tải lại</span>
           </button>
+
         </div>
       </div>
 
@@ -498,6 +545,19 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
                         <span>Sửa</span>
                       </button>
                     )}
+
+                    {/* Admin Action: Delete Record */}
+                    {activeUser?.role === 'ADMIN' && (
+                      <button
+                        onClick={() => handleDeleteRecord(item.id)}
+                        disabled={isDeleting}
+                        className="p-1.5 text-[#b42318] hover:bg-[#fff0ed] rounded-full transition-colors shrink-0"
+                        title="Xóa bản ghi này (Dành cho Admin)"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+
 
 
 

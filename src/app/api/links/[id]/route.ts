@@ -63,3 +63,31 @@ export async function PATCH(
     return NextResponse.json({ error: err.message || 'Lỗi cập nhật yêu cầu.' }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Bạn cần đăng nhập để thực hiện thao tác này.' }, { status: 401 });
+  }
+
+  if (user.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Chỉ tài khoản Quản trị viên (Admin) mới có quyền xóa bản ghi.' }, { status: 403 });
+  }
+
+  const { id } = await params;
+
+  try {
+    const { deleteLinkRecord } = await import('@/lib/db');
+    const success = await deleteLinkRecord(id);
+    if (!success) {
+      return NextResponse.json({ error: 'Không tìm thấy bản ghi cần xóa.' }, { status: 404 });
+    }
+    return NextResponse.json({ message: 'Xóa bản ghi thành công.' });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Lỗi khi xóa bản ghi.' }, { status: 500 });
+  }
+}
+

@@ -877,6 +877,40 @@ export async function updateOneLinkStatusAndUrl(
   }
 }
 
+export async function deleteLinkRecord(id: string): Promise<boolean> {
+  if (pool) {
+    const res = await pool.query('DELETE FROM link_history WHERE id = $1', [id]);
+    return (res.rowCount || 0) > 0;
+  } else {
+    const db = getLocalDB();
+    const idx = db.links.findIndex((l) => l.id === id);
+    if (idx === -1) return false;
+    db.links.splice(idx, 1);
+    saveLocalDB(db);
+    return true;
+  }
+}
+
+export async function deleteLegacyOneLinks(): Promise<number> {
+  if (pool) {
+    const res = await pool.query(
+      `DELETE FROM link_history 
+       WHERE link_type = 'ONELINK' 
+         AND (target_user IS NULL OR final_link LIKE '%onelink.me%?pid=%')`
+    );
+    return res.rowCount || 0;
+  } else {
+    const db = getLocalDB();
+    const initialLen = db.links.length;
+    db.links = db.links.filter(
+      (l) => !(l.linkType === 'ONELINK' && (!l.targetUser || l.finalLink.includes('onelink.me?pid=')))
+    );
+    saveLocalDB(db);
+    return initialLen - db.links.length;
+  }
+}
+
+
 function mapPgLinkRow(row: any): LinkRecord {
   return {
     id: row.id,

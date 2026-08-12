@@ -172,3 +172,26 @@ export async function POST(req: Request) {
   }
 }
 
+export async function DELETE() {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Bạn cần đăng nhập để thực hiện thao tác này.' }, { status: 401 });
+  }
+
+  if (user.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Chỉ tài khoản Quản trị viên (Admin) mới có quyền xóa bản ghi.' }, { status: 403 });
+  }
+
+  try {
+    const { deleteLegacyOneLinks } = await import('@/lib/db');
+    const deletedCount = await deleteLegacyOneLinks();
+    return NextResponse.json({
+      deletedCount,
+      message: `Đã dọn dẹp ${deletedCount} bản ghi OneLink kiểu cũ khỏi hệ thống.`
+    });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Lỗi dọn dẹp OneLink cũ.' }, { status: 500 });
+  }
+}
+
+
