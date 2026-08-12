@@ -492,9 +492,32 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
 
                   <div className="w-full overflow-hidden break-all space-y-1">
                     {item.finalLink ? (
-                      <code className="block font-mono text-[11px] text-[#20201c] font-bold break-all select-all leading-relaxed" title={item.finalLink}>
-                        {item.finalLink}
-                      </code>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(item.finalLink, item.id)}
+                        className="group text-left w-full p-2 rounded-[10px] bg-[#f8f8f6] hover:bg-[#fff9df] border border-[#deded7] hover:border-[#edce67] transition-all cursor-pointer relative"
+                        title="Click để sao chép link"
+                      >
+                        <div className="flex items-center justify-between gap-1 mb-1">
+                          <span className="text-[9px] font-black uppercase text-[#71716a] group-hover:text-[#8a6200] flex items-center gap-1">
+                            <Copy className="w-2.5 h-2.5" />
+                            <span>Bấm vào để copy</span>
+                          </span>
+                          {copiedId === item.id ? (
+                            <span className="text-[10px] font-bold text-[#176b46] bg-[#eaf8ef] border border-[#a2e2b8] px-1.5 py-0.2 rounded flex items-center gap-0.5 animate-fadeIn">
+                              <Check className="w-3 h-3 text-[#176b46]" />
+                              <span>Đã copy!</span>
+                            </span>
+                          ) : (
+                            <span className="text-[9px] text-[#71716a] opacity-0 group-hover:opacity-100 transition-opacity">
+                              Sao chép
+                            </span>
+                          )}
+                        </div>
+                        <code className="block font-mono text-[11px] text-[#20201c] font-bold break-all leading-relaxed group-hover:text-[#8a6200]">
+                          {item.finalLink}
+                        </code>
+                      </button>
                     ) : (
                       <div className="space-y-1 text-xs">
                         <div className="text-[11px] text-[#8a6200] font-semibold italic">
@@ -510,7 +533,6 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
                         )}
                       </div>
                     )}
-
                   </div>
 
                   <div className="space-y-1">
@@ -547,40 +569,20 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
                       </button>
                     )}
 
-                    {/* 3. Copy Button */}
-                    {item.finalLink && (
-                      <button
-                        onClick={() => handleCopy(item.finalLink, item.id)}
-                        className="btn yellow text-[11px] min-h-[32px] px-3 shrink-0"
-                      >
-                        {copiedId === item.id ? (
-                          <>
-                            <Check className="w-3 h-3" />
-                            <span>Đã copy</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-3 h-3" />
-                            <span>Copy</span>
-                          </>
-                        )}
-                      </button>
-                    )}
-
-                    {/* 4. Open External Link Button */}
+                    {/* 3. Open External Link Button */}
                     {item.finalLink && (
                       <a
                         href={item.finalLink}
                         target="_blank"
                         rel="noreferrer"
                         className="btn secondary text-[11px] min-h-[32px] px-2.5 shrink-0"
-                        title="Mở link"
+                        title="Mở link trong tab mới"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     )}
 
-                    {/* 5. Admin Action: Delete Record (ALWAYS AT FAR RIGHT) */}
+                    {/* 4. Admin Action: Delete Record (ALWAYS AT FAR RIGHT) */}
                     {activeUser?.role === 'ADMIN' && (
                       <button
                         onClick={() => handleDeleteRecord(item.id)}
@@ -592,6 +594,7 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
                       </button>
                     )}
                   </div>
+
                 </div>
 
                 {/* Expanded Details Drawer */}
