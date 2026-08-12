@@ -34,13 +34,15 @@ export async function GET() {
         'Ghi Chú': item.note || '',
         'OneLink Hoàn Chỉnh': item.finalLink || '',
         'Trạng Thái':
-          item.status === 'CREATED'
+          item.status === 'COMPLETED'
             ? 'Đã tạo link'
-            : item.status === 'PENDING'
+            : item.status === 'NEW'
             ? 'Mới tạo / Đang chờ'
+            : item.status === 'IN_PROGRESS'
+            ? 'Đang xử lý'
             : item.status === 'REJECTED'
             ? 'Từ chối'
-            : item.status,
+            : 'Đã hoàn thành',
         'Người Xử Lý': item.processedByName || '',
       }));
 
@@ -60,8 +62,9 @@ export async function GET() {
         'Nội Dung QC (utm_content)': item.utmContent || '',
         'Từ Khóa (utm_term)': item.utmTerm || '',
         'Link UTM Hoàn Chỉnh': item.finalLink || '',
-        'Trạng Thái': item.status === 'CREATED' ? 'Đã tạo link' : item.status,
+        'Trạng Thái': 'Đã tạo link',
       }));
+
 
     // 3. Create Workbook & Sheets
     const workbook = XLSX.utils.book_new();
