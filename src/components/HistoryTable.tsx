@@ -417,10 +417,17 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
               >
                 <div className="flex flex-col md:grid md:grid-cols-[90px_130px_170px_1fr_130px_140px] gap-2 md:gap-4 items-start md:items-center p-4 text-xs">
                   <div>
-                    <span className="inline-flex px-2.5 py-1 bg-[#fff3bd] text-[#20201c] rounded-full text-[10px] font-black uppercase">
+                    <span
+                      className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                        item.linkType === 'ONELINK'
+                          ? 'bg-[#fff3bd] text-[#8a6200] border border-[#edce67]'
+                          : 'bg-[#e0f2fe] text-[#0369a1] border border-[#7dd3fc]'
+                      }`}
+                    >
                       {item.linkType}
                     </span>
                   </div>
+
 
                   <div>
                     <strong className="block font-bold text-[#20201c]">{item.createdByName}</strong>
