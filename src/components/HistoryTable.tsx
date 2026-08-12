@@ -596,37 +596,131 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
 
                 {/* Expanded Details Drawer */}
                 {isExpanded && (
-                  <div className="px-5 py-3 bg-[#f8f8f6] border-t border-[#deded7] text-xs space-y-2 animate-fadeIn">
-                    <div className="font-extrabold text-[#20201c]">Thông tin chi tiết bản ghi:</div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[#20201c]">
-                      <div><span className="text-[#71716a]">Mã Yêu cầu:</span> <code className="font-mono text-[10px]">#{item.id.slice(0, 8)}</code></div>
-                      <div><span className="text-[#71716a]">Khách hàng:</span> {item.targetUser === 'NEW_USER' ? 'Khách mới' : item.targetUser === 'EXISTING_USER' ? 'Người đã cài App' : item.targetUser === 'BOTH' ? 'Cả hai' : '-'}</div>
-                      <div><span className="text-[#71716a]">Đích đến App:</span> {item.deepLinkValue || '-'}</div>
-                      <div><span className="text-[#71716a]">Slug đề xuất:</span> {item.desiredSlug || '-'}</div>
+                  <div className="px-5 py-4 bg-[#f8f8f6] border-t border-[#deded7] text-xs space-y-4 animate-fadeIn">
+                    <div className="flex items-center justify-between border-b border-[#deded7] pb-2">
+                      <div className="font-extrabold text-[#20201c] flex items-center space-x-2">
+                        <span className="w-2 h-2 rounded-full bg-[#8a6200]"></span>
+                        <span>Chi tiết đầy đủ bản ghi Yêu cầu #{item.id.slice(0, 8)}</span>
+                      </div>
+                      <span className="text-[11px] text-[#71716a]">
+                        Tạo lúc: {new Date(item.createdAt).toLocaleString('vi-VN')}
+                      </span>
                     </div>
 
+                    {/* Section 1: Business Parameters Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3 bg-white p-3.5 rounded-[12px] border border-[#deded7]">
+                      <div>
+                        <span className="block text-[10px] font-black uppercase text-[#71716a]">Người yêu cầu</span>
+                        <strong className="text-[#20201c] font-bold">{item.createdByName}</strong>
+                        <span className="block text-[10px] text-[#71716a]">{item.createdByEmail || '-'}</span>
+                      </div>
+
+                      <div>
+                        <span className="block text-[10px] font-black uppercase text-[#71716a]">OneLink Template</span>
+                        <code className="text-[#20201c] font-mono text-[11px] break-all">{item.originalUrl || '-'}</code>
+                      </div>
+
+                      <div>
+                        <span className="block text-[10px] font-black uppercase text-[#71716a]">Khách hàng mục tiêu</span>
+                        <span className="font-bold text-[#20201c]">
+                          {item.targetUser === 'NEW_USER'
+                            ? 'Khách hàng mới (New Users)'
+                            : item.targetUser === 'EXISTING_USER'
+                            ? 'Người dùng đã cài App (Existing Users)'
+                            : item.targetUser === 'BOTH'
+                            ? 'Cả khách mới & khách cũ (Both)'
+                            : '-'}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="block text-[10px] font-black uppercase text-[#71716a]">Nguồn đặt link (pid / utm_source)</span>
+                        <span className="font-bold text-[#20201c]">{item.mediaSource || item.utmSource || '-'}</span>
+                      </div>
+
+                      <div>
+                        <span className="block text-[10px] font-black uppercase text-[#71716a]">Hình thức (af_channel / utm_medium)</span>
+                        <span className="font-bold text-[#20201c]">{item.afChannel || item.utmMedium || '-'}</span>
+                      </div>
+
+                      <div>
+                        <span className="block text-[10px] font-black uppercase text-[#71716a]">Tên chiến dịch (c / utm_campaign)</span>
+                        <span className="font-bold text-[#20201c]">{getCampaignDisplayName(item)}</span>
+                      </div>
+
+                      <div>
+                        <span className="block text-[10px] font-black uppercase text-[#71716a]">Mã quản lý nội bộ (af_c_id / utm_id)</span>
+                        <span className="font-mono text-[#20201c]">{item.afCId || item.utmId || '-'}</span>
+                      </div>
+
+                      <div>
+                        <span className="block text-[10px] font-black uppercase text-[#71716a]">Nhóm QC (af_adset)</span>
+                        <span className="font-bold text-[#20201c]">{item.afAdset || '-'}</span>
+                      </div>
+
+                      <div>
+                        <span className="block text-[10px] font-black uppercase text-[#71716a]">Mẫu QC (af_ad / utm_content)</span>
+                        <span className="font-bold text-[#20201c]">{item.afAd || item.utmContent || '-'}</span>
+                      </div>
+
+                      <div>
+                        <span className="block text-[10px] font-black uppercase text-[#71716a]">Đích đến trong App (deep_link_value)</span>
+                        <code className="font-mono text-[#8a6200] font-bold">{item.deepLinkValue || '-'}</code>
+                      </div>
+
+                      <div>
+                        <span className="block text-[10px] font-black uppercase text-[#71716a]">Slug đề xuất</span>
+                        <code className="font-mono text-[#8a6200] font-bold">{item.desiredSlug || '-'}</code>
+                      </div>
+
+                      <div>
+                        <span className="block text-[10px] font-black uppercase text-[#71716a]">OneLink Hoàn chỉnh</span>
+                        {item.finalLink ? (
+                          <code className="font-mono text-[11px] text-[#176b46] font-bold break-all">{item.finalLink}</code>
+                        ) : (
+                          <span className="text-[#8a6200] italic font-semibold">Chưa khởi tạo</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Section 2: Note & Processing Logs */}
                     {item.note && (
-                      <div className="text-[#71716a] pt-1">
-                        <span>Ghi chú: </span><span className="italic text-[#20201c]">{item.note}</span>
+                      <div className="bg-[#fff9df] p-3 rounded-[10px] border border-[#edce67] text-xs">
+                        <span className="font-bold text-[#8a6200]">Ghi chú yêu cầu từ người gửi: </span>
+                        <span className="text-[#20201c] italic">{item.note}</span>
                       </div>
                     )}
 
+                    {/* Section 3: Social Preview Card */}
                     {item.socialPreview?.enabled && (
-                      <div className="p-2 bg-white rounded-[8px] border border-[#deded7] text-[11px] space-y-0.5">
-                        <div className="font-bold text-[#8a6200]">Yêu cầu Hiển thị Social Preview:</div>
-                        {item.socialPreview.title && <div>Title: {item.socialPreview.title}</div>}
-                        {item.socialPreview.description && <div>Description: {item.socialPreview.description}</div>}
-                        {item.socialPreview.imageUrl && <div>Image: {item.socialPreview.imageUrl}</div>}
+                      <div className="p-3 bg-white rounded-[10px] border border-[#deded7] text-xs space-y-1.5">
+                        <div className="font-bold text-[#8a6200] flex items-center space-x-1.5">
+                          <span>🌐 Cấu hình Hiển thị Social Media Preview:</span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 text-[#20201c]">
+                          <div><span className="text-[#71716a]">Title:</span> {item.socialPreview.title || '-'}</div>
+                          <div><span className="text-[#71716a]">Description:</span> {item.socialPreview.description || '-'}</div>
+                          <div className="break-all"><span className="text-[#71716a]">Image URL:</span> {item.socialPreview.imageUrl || '-'}</div>
+                        </div>
                       </div>
                     )}
 
+                    {/* Section 4: Admin Audit Log */}
                     {item.processedByName && (
-                      <div className="text-[11px] text-[#176b46] pt-1 border-t border-[#deded7]">
-                        <span>Người cập nhật link: </span><strong>{item.processedByName}</strong> lúc {item.processedAt ? new Date(item.processedAt).toLocaleString('vi-VN') : ''}
+                      <div className="text-[11px] text-[#176b46] pt-2 border-t border-[#deded7] flex items-center justify-between">
+                        <div>
+                          <span>Người cập nhật link: </span>
+                          <strong className="font-extrabold">{item.processedByName}</strong>
+                          {item.processedAt && <span> lúc {new Date(item.processedAt).toLocaleString('vi-VN')}</span>}
+                        </div>
+                        <span className="font-bold uppercase bg-[#eaf8ef] px-2 py-0.5 rounded text-[10px]">
+                          Trạng thái: {item.status}
+                        </span>
                       </div>
                     )}
                   </div>
                 )}
+
               </div>
             );
           })
