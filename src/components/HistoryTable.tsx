@@ -266,18 +266,6 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
             </button>
           )}
 
-          {activeUser?.role === 'ADMIN' && (
-            <button
-              onClick={handleDeleteLegacyOneLinks}
-              disabled={isDeleting}
-              title="Xóa toàn bộ bản ghi OneLink tự sinh link kiểu cũ"
-              className="btn secondary text-xs min-h-[38px] px-3.5 text-[#b42318] border-[#fecdca] bg-[#fff0ed] hover:bg-[#fee4e2]"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Dọn dẹp OneLink cũ</span>
-            </button>
-          )}
-
           <button
             onClick={fetchLinks}
             title="Tải lại danh sách"
@@ -286,6 +274,7 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             <span>Tải lại</span>
           </button>
+
 
         </div>
       </div>
@@ -524,7 +513,7 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
                   </div>
 
                   <div className="flex items-center justify-start md:justify-end gap-1.5 w-full shrink-0">
-                    {/* Toggle details expansion */}
+                    {/* 1. Toggle details expansion */}
                     <button
                       type="button"
                       onClick={() => setExpandedId(isExpanded ? null : item.id)}
@@ -534,7 +523,7 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
                       {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </button>
 
-                    {/* Admin Action: Update Link */}
+                    {/* 2. Admin Action: Update Link (OneLink only) */}
                     {item.linkType === 'ONELINK' && activeUser?.role === 'ADMIN' && (
                       <button
                         onClick={() => handleOpenUpdateModal(item)}
@@ -546,7 +535,40 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
                       </button>
                     )}
 
-                    {/* Admin Action: Delete Record */}
+                    {/* 3. Copy Button */}
+                    {item.finalLink && (
+                      <button
+                        onClick={() => handleCopy(item.finalLink, item.id)}
+                        className="btn yellow text-[11px] min-h-[32px] px-3 shrink-0"
+                      >
+                        {copiedId === item.id ? (
+                          <>
+                            <Check className="w-3 h-3" />
+                            <span>Đã copy</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3 h-3" />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    {/* 4. Open External Link Button */}
+                    {item.finalLink && (
+                      <a
+                        href={item.finalLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn secondary text-[11px] min-h-[32px] px-2.5 shrink-0"
+                        title="Mở link"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+
+                    {/* 5. Admin Action: Delete Record (ALWAYS AT FAR RIGHT) */}
                     {activeUser?.role === 'ADMIN' && (
                       <button
                         onClick={() => handleDeleteRecord(item.id)}
@@ -557,40 +579,6 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     )}
-
-
-
-
-                    {item.finalLink && (
-                      <>
-                        <button
-                          onClick={() => handleCopy(item.finalLink, item.id)}
-                          className="btn yellow text-[11px] min-h-[32px] px-3"
-                        >
-                          {copiedId === item.id ? (
-                            <>
-                              <Check className="w-3 h-3" />
-                              <span>Đã copy</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3 h-3" />
-                              <span>Copy</span>
-                            </>
-                          )}
-                        </button>
-
-                        <a
-                          href={item.finalLink}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="btn secondary text-[11px] min-h-[32px] px-2.5"
-                          title="Mở link"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
-                      </>
-                    )}
                   </div>
                 </div>
 
@@ -599,99 +587,153 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
                   <div className="px-5 py-4 bg-[#f8f8f6] border-t border-[#deded7] text-xs space-y-4 animate-fadeIn">
                     <div className="flex items-center justify-between border-b border-[#deded7] pb-2">
                       <div className="font-extrabold text-[#20201c] flex items-center space-x-2">
-                        <span className="w-2 h-2 rounded-full bg-[#8a6200]"></span>
-                        <span>Chi tiết đầy đủ bản ghi Yêu cầu #{item.id.slice(0, 8)}</span>
+                        <span className={`w-2 h-2 rounded-full ${item.linkType === 'ONELINK' ? 'bg-[#8a6200]' : 'bg-[#0369a1]'}`}></span>
+                        <span>
+                          Chi tiết đầy đủ {item.linkType === 'ONELINK' ? 'Yêu cầu OneLink' : 'Link Google UTM'} #{item.id.slice(0, 8)}
+                        </span>
                       </div>
                       <span className="text-[11px] text-[#71716a]">
                         Tạo lúc: {new Date(item.createdAt).toLocaleString('vi-VN')}
                       </span>
                     </div>
 
-                    {/* Section 1: Business Parameters Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3 bg-white p-3.5 rounded-[12px] border border-[#deded7]">
-                      <div>
-                        <span className="block text-[10px] font-black uppercase text-[#71716a]">Người yêu cầu</span>
-                        <strong className="text-[#20201c] font-bold">{item.createdByName}</strong>
-                        <span className="block text-[10px] text-[#71716a]">{item.createdByEmail || '-'}</span>
-                      </div>
+                    {/* Distinct Grid View for UTM vs ONELINK */}
+                    {item.linkType === 'UTM' ? (
+                      /* UTM Details Grid */
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3 bg-white p-3.5 rounded-[12px] border border-[#deded7]">
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-[#71716a]">Người khởi tạo</span>
+                          <strong className="text-[#20201c] font-bold">{item.createdByName}</strong>
+                          <span className="block text-[10px] text-[#71716a]">{item.createdByEmail || '-'}</span>
+                        </div>
 
-                      <div>
-                        <span className="block text-[10px] font-black uppercase text-[#71716a]">OneLink Template</span>
-                        <code className="text-[#20201c] font-mono text-[11px] break-all">{item.originalUrl || '-'}</code>
-                      </div>
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-[#71716a]">URL Gốc (Landing Page)</span>
+                          <code className="text-[#20201c] font-mono text-[11px] break-all">{item.originalUrl || '-'}</code>
+                        </div>
 
-                      <div>
-                        <span className="block text-[10px] font-black uppercase text-[#71716a]">Khách hàng mục tiêu</span>
-                        <span className="font-bold text-[#20201c]">
-                          {item.targetUser === 'NEW_USER'
-                            ? 'Khách hàng mới (New Users)'
-                            : item.targetUser === 'EXISTING_USER'
-                            ? 'Người dùng đã cài App (Existing Users)'
-                            : item.targetUser === 'BOTH'
-                            ? 'Cả khách mới & khách cũ (Both)'
-                            : '-'}
-                        </span>
-                      </div>
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-[#71716a]">Nguồn (utm_source)</span>
+                          <span className="font-bold text-[#20201c]">{item.utmSource || '-'}</span>
+                        </div>
 
-                      <div>
-                        <span className="block text-[10px] font-black uppercase text-[#71716a]">Nguồn đặt link (pid / utm_source)</span>
-                        <span className="font-bold text-[#20201c]">{item.mediaSource || item.utmSource || '-'}</span>
-                      </div>
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-[#71716a]">Kênh (utm_medium)</span>
+                          <span className="font-bold text-[#20201c]">{item.utmMedium || '-'}</span>
+                        </div>
 
-                      <div>
-                        <span className="block text-[10px] font-black uppercase text-[#71716a]">Hình thức (af_channel / utm_medium)</span>
-                        <span className="font-bold text-[#20201c]">{item.afChannel || item.utmMedium || '-'}</span>
-                      </div>
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-[#71716a]">Tên chiến dịch (utm_campaign)</span>
+                          <span className="font-bold text-[#20201c]">{getCampaignDisplayName(item)}</span>
+                        </div>
 
-                      <div>
-                        <span className="block text-[10px] font-black uppercase text-[#71716a]">Tên chiến dịch (c / utm_campaign)</span>
-                        <span className="font-bold text-[#20201c]">{getCampaignDisplayName(item)}</span>
-                      </div>
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-[#71716a]">Mã chiến dịch (utm_id)</span>
+                          <span className="font-mono text-[#20201c]">{item.utmId || '-'}</span>
+                        </div>
 
-                      <div>
-                        <span className="block text-[10px] font-black uppercase text-[#71716a]">Mã quản lý nội bộ (af_c_id / utm_id)</span>
-                        <span className="font-mono text-[#20201c]">{item.afCId || item.utmId || '-'}</span>
-                      </div>
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-[#71716a]">Nội dung QC (utm_content)</span>
+                          <span className="font-bold text-[#20201c]">{item.utmContent || '-'}</span>
+                        </div>
 
-                      <div>
-                        <span className="block text-[10px] font-black uppercase text-[#71716a]">Nhóm QC (af_adset)</span>
-                        <span className="font-bold text-[#20201c]">{item.afAdset || '-'}</span>
-                      </div>
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-[#71716a]">Từ khóa (utm_term)</span>
+                          <span className="font-bold text-[#20201c]">{item.utmTerm || '-'}</span>
+                        </div>
 
-                      <div>
-                        <span className="block text-[10px] font-black uppercase text-[#71716a]">Mẫu QC (af_ad / utm_content)</span>
-                        <span className="font-bold text-[#20201c]">{item.afAd || item.utmContent || '-'}</span>
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-[#71716a]">Link UTM Hoàn chỉnh</span>
+                          <code className="font-mono text-[11px] text-[#0369a1] font-bold break-all">{item.finalLink}</code>
+                        </div>
                       </div>
+                    ) : (
+                      /* OneLink Details Grid */
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3 bg-white p-3.5 rounded-[12px] border border-[#deded7]">
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-[#71716a]">Người yêu cầu</span>
+                          <strong className="text-[#20201c] font-bold">{item.createdByName}</strong>
+                          <span className="block text-[10px] text-[#71716a]">{item.createdByEmail || '-'}</span>
+                        </div>
 
-                      <div>
-                        <span className="block text-[10px] font-black uppercase text-[#71716a]">Đích đến trong App (deep_link_value)</span>
-                        <code className="font-mono text-[#8a6200] font-bold">{item.deepLinkValue || '-'}</code>
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-[#71716a]">OneLink Template</span>
+                          <code className="text-[#20201c] font-mono text-[11px] break-all">{item.originalUrl || '-'}</code>
+                        </div>
+
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-[#71716a]">Khách hàng mục tiêu</span>
+                          <span className="font-bold text-[#20201c]">
+                            {item.targetUser === 'NEW_USER'
+                              ? 'Khách hàng mới (New Users)'
+                              : item.targetUser === 'EXISTING_USER'
+                              ? 'Người dùng đã cài App (Existing Users)'
+                              : item.targetUser === 'BOTH'
+                              ? 'Cả khách mới & khách cũ (Both)'
+                              : '-'}
+                          </span>
+                        </div>
+
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-[#71716a]">Nguồn đặt link (media_source / pid)</span>
+                          <span className="font-bold text-[#20201c]">{item.mediaSource || item.utmSource || '-'}</span>
+                        </div>
+
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-[#71716a]">Hình thức (af_channel / channel)</span>
+                          <span className="font-bold text-[#20201c]">{item.afChannel || item.utmMedium || '-'}</span>
+                        </div>
+
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-[#71716a]">Tên chiến dịch (campaign_name / c)</span>
+                          <span className="font-bold text-[#20201c]">{getCampaignDisplayName(item)}</span>
+                        </div>
+
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-[#71716a]">Mã quản lý nội bộ (af_c_id)</span>
+                          <span className="font-mono text-[#20201c]">{item.afCId || item.utmId || '-'}</span>
+                        </div>
+
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-[#71716a]">Nhóm QC (af_adset)</span>
+                          <span className="font-bold text-[#20201c]">{item.afAdset || '-'}</span>
+                        </div>
+
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-[#71716a]">Mẫu QC (af_ad)</span>
+                          <span className="font-bold text-[#20201c]">{item.afAd || item.utmContent || '-'}</span>
+                        </div>
+
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-[#71716a]">Đích đến trong App (deep_link_value)</span>
+                          <code className="font-mono text-[#8a6200] font-bold">{item.deepLinkValue || '-'}</code>
+                        </div>
+
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-[#71716a]">Slug đề xuất</span>
+                          <code className="font-mono text-[#8a6200] font-bold">{item.desiredSlug || '-'}</code>
+                        </div>
+
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-[#71716a]">OneLink Hoàn chỉnh</span>
+                          {item.finalLink ? (
+                            <code className="font-mono text-[11px] text-[#176b46] font-bold break-all">{item.finalLink}</code>
+                          ) : (
+                            <span className="text-[#8a6200] italic font-semibold">Chưa khởi tạo trên AppsFlyer</span>
+                          )}
+                        </div>
                       </div>
+                    )}
 
-                      <div>
-                        <span className="block text-[10px] font-black uppercase text-[#71716a]">Slug đề xuất</span>
-                        <code className="font-mono text-[#8a6200] font-bold">{item.desiredSlug || '-'}</code>
-                      </div>
-
-                      <div>
-                        <span className="block text-[10px] font-black uppercase text-[#71716a]">OneLink Hoàn chỉnh</span>
-                        {item.finalLink ? (
-                          <code className="font-mono text-[11px] text-[#176b46] font-bold break-all">{item.finalLink}</code>
-                        ) : (
-                          <span className="text-[#8a6200] italic font-semibold">Chưa khởi tạo</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Section 2: Note & Processing Logs */}
+                    {/* Section 2: Note */}
                     {item.note && (
                       <div className="bg-[#fff9df] p-3 rounded-[10px] border border-[#edce67] text-xs">
-                        <span className="font-bold text-[#8a6200]">Ghi chú yêu cầu từ người gửi: </span>
+                        <span className="font-bold text-[#8a6200]">Ghi chú từ người gửi: </span>
                         <span className="text-[#20201c] italic">{item.note}</span>
                       </div>
                     )}
 
-                    {/* Section 3: Social Preview Card */}
+                    {/* Section 3: Social Preview */}
                     {item.socialPreview?.enabled && (
                       <div className="p-3 bg-white rounded-[10px] border border-[#deded7] text-xs space-y-1.5">
                         <div className="font-bold text-[#8a6200] flex items-center space-x-1.5">
@@ -720,6 +762,7 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
                     )}
                   </div>
                 )}
+
 
               </div>
             );
