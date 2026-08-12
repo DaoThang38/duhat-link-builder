@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { LinkType, User, DuplicateLinkErrorResponse } from '@/types';
+import { LinkType, User, TargetUserType, DuplicateLinkErrorResponse } from '@/types';
 import AutocompleteInput from './AutocompleteInput';
 import UrlAutocompleteInput from './UrlAutocompleteInput';
 import ConfirmModal from './ConfirmModal';
-import { generateUtmUrl, generateOneLinkUrl } from '@/lib/link-generator';
-import { Copy, Check, AlertCircle, ExternalLink, Link as LinkIcon, Sparkles, CheckCircle2, RotateCcw, Trash2 } from 'lucide-react';
+import { generateUtmUrl } from '@/lib/link-generator';
+import { Copy, Check, AlertCircle, ExternalLink, Link as LinkIcon, CheckCircle2, RotateCcw, Info, Share2, FileText, Send } from 'lucide-react';
 
 interface LinkBuilderFormProps {
   currentUser: User;
@@ -34,21 +34,28 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
   const [utmContent, setUtmContent] = useState('');
   const [utmTerm, setUtmTerm] = useState('');
 
-  // Form Fields - AppsFlyer OneLink
+  // Form Fields - AppsFlyer OneLink Request
   const DEFAULT_ONELINK_TEMPLATE = process.env.NEXT_PUBLIC_ONELINK_DEFAULT_TEMPLATE || 'https://duhat.onelink.me/abc1';
   const [oneLinkTemplate, setOneLinkTemplate] = useState(DEFAULT_ONELINK_TEMPLATE);
   const [mediaSource, setMediaSource] = useState('');
-  const [campaignName, setCampaignName] = useState('');
   const [channel, setChannel] = useState('');
+  const [campaignName, setCampaignName] = useState('');
   const [campaignId, setCampaignId] = useState('');
   const [adGroup, setAdGroup] = useState('');
   const [adName, setAdName] = useState('');
-  const [keywords, setKeywords] = useState('');
+  const [targetUser, setTargetUser] = useState<TargetUserType>('NEW_USER');
   const [deepLinkValue, setDeepLinkValue] = useState('');
-  const [isRetargeting, setIsRetargeting] = useState(false);
+  const [desiredSlug, setDesiredSlug] = useState('');
+  const [note, setNote] = useState('');
 
-  // Real-time Preview Calculation
-  const livePreview = useMemo(() => {
+  // Social Media Preview Fields
+  const [enableSocialPreview, setEnableSocialPreview] = useState(false);
+  const [socialTitle, setSocialTitle] = useState('');
+  const [socialDescription, setSocialDescription] = useState('');
+  const [socialImageUrl, setSocialImageUrl] = useState('');
+
+  // Real-time Preview Calculation (UTM only)
+  const liveUtmPreview = useMemo(() => {
     try {
       if (activeTab === 'UTM') {
         if (!utmUrl && !utmSource && !utmMedium && !utmCampaign) return '';
@@ -61,44 +68,12 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
           utmContent: utmContent || undefined,
           utmTerm: utmTerm || undefined,
         });
-      } else {
-        if (!oneLinkTemplate && !mediaSource && !campaignName) return '';
-        return generateOneLinkUrl({
-          oneLinkTemplate: oneLinkTemplate || DEFAULT_ONELINK_TEMPLATE,
-          mediaSource: mediaSource || '',
-          campaignName: campaignName || '',
-          channel: channel || undefined,
-          campaignId: campaignId || undefined,
-          adGroup: adGroup || undefined,
-          adName: adName || undefined,
-          keywords: keywords || undefined,
-          deepLinkValue: deepLinkValue || undefined,
-          isRetargeting,
-        });
       }
+      return '';
     } catch {
       return '';
     }
-  }, [
-    activeTab,
-    utmUrl,
-    utmSource,
-    utmMedium,
-    utmCampaign,
-    utmId,
-    utmContent,
-    utmTerm,
-    oneLinkTemplate,
-    mediaSource,
-    campaignName,
-    channel,
-    campaignId,
-    adGroup,
-    adName,
-    keywords,
-    deepLinkValue,
-    isRetargeting,
-  ]);
+  }, [activeTab, utmUrl, utmSource, utmMedium, utmCampaign, utmId, utmContent, utmTerm]);
 
   const handleResetForm = () => {
     setUtmUrl('');
@@ -111,14 +86,19 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
 
     setOneLinkTemplate('https://duhat.onelink.me/abc1');
     setMediaSource('');
-    setCampaignName('');
     setChannel('');
+    setCampaignName('');
     setCampaignId('');
     setAdGroup('');
     setAdName('');
-    setKeywords('');
+    setTargetUser('NEW_USER');
     setDeepLinkValue('');
-    setIsRetargeting(false);
+    setDesiredSlug('');
+    setNote('');
+    setEnableSocialPreview(false);
+    setSocialTitle('');
+    setSocialDescription('');
+    setSocialImageUrl('');
 
     setErrorMessage('');
     setDuplicateInfo(null);
@@ -135,8 +115,8 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
         return;
       }
     } else {
-      if (!oneLinkTemplate.trim() || !mediaSource.trim() || !campaignName.trim()) {
-        setErrorMessage('Vui lòng điền đủ các trường bắt buộc có dấu * (Template, Media Source, Tên chiến dịch).');
+      if (!oneLinkTemplate.trim() || !mediaSource.trim() || !channel.trim() || !campaignName.trim() || !targetUser || !deepLinkValue.trim()) {
+        setErrorMessage('Vui lòng điền đủ các trường bắt buộc có dấu * (Template, Nguồn, Hình thức, Tên chiến dịch, Khách hàng mục tiêu, Đích đến trong App).');
         return;
       }
     }
@@ -165,14 +145,21 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
           linkType: 'ONELINK',
           oneLinkTemplate,
           mediaSource,
-          campaignName,
           channel,
+          campaignName,
           campaignId,
           adGroup,
           adName,
-          keywords,
+          targetUser,
           deepLinkValue,
-          isRetargeting,
+          desiredSlug,
+          socialPreview: enableSocialPreview ? {
+            enabled: true,
+            title: socialTitle,
+            description: socialDescription,
+            imageUrl: socialImageUrl,
+          } : undefined,
+          note,
         };
 
     try {
@@ -188,7 +175,7 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
         setDuplicateInfo(data.existingRecord);
         setIsConfirmOpen(false);
       } else if (!res.ok) {
-        setErrorMessage(data.error || 'Tạo link thất bại.');
+        setErrorMessage(data.error || 'Thao tác thất bại.');
       } else {
         setCreatedLinkRecord(data.linkRecord);
         setIsConfirmOpen(false);
@@ -202,6 +189,7 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
   };
 
   const handleCopyLink = (text: string) => {
+    if (!text) return;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -213,6 +201,8 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
     setCopiedPreview(true);
     setTimeout(() => setCopiedPreview(false), 2000);
   };
+
+  const targetUserLabel = targetUser === 'NEW_USER' ? 'Khách mới' : targetUser === 'EXISTING_USER' ? 'Người đã cài App' : 'Cả hai';
 
   return (
     <div className="duhat-card space-y-6">
@@ -244,7 +234,7 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
         </div>
 
         <div className="text-right">
-          <span className="text-xs text-[#71716a] font-medium">Người tạo: </span>
+          <span className="text-xs text-[#71716a] font-medium">Người yêu cầu: </span>
           <span className="font-extrabold text-xs text-[#20201c]">{currentUser.fullName}</span>
         </div>
       </div>
@@ -254,25 +244,31 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
         <div className="p-4 bg-[#eaf8ef] border border-[#176b46]/30 rounded-[14px] text-[#176b46] font-bold text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
           <div className="flex items-center space-x-2">
             <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-[#176b46]" />
-            <span>🎉 Tạo link thành công! Link đã được kiểm tra trùng lặp và lưu vào hệ thống.</span>
+            <span>
+              {activeTab === 'ONELINK'
+                ? '🎉 Đã gửi yêu cầu OneLink thành công! Yêu cầu đã được lưu để người phụ trách AppsFlyer xử lý.'
+                : '🎉 Tạo link UTM thành công! Link đã được lưu vào hệ thống.'}
+            </span>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <button
-              type="button"
-              onClick={() => handleCopyLink(createdLinkRecord.finalLink)}
-              className="btn yellow text-xs min-h-[34px] px-3.5"
-            >
-              <Copy className="w-3.5 h-3.5" />
-              <span>{copied ? 'Đã sao chép!' : 'Sao chép link'}</span>
-            </button>
+            {createdLinkRecord.finalLink && (
+              <button
+                type="button"
+                onClick={() => handleCopyLink(createdLinkRecord.finalLink)}
+                className="btn yellow text-xs min-h-[34px] px-3.5"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>{copied ? 'Đã sao chép!' : 'Sao chép link'}</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={handleResetForm}
               className="btn secondary text-xs min-h-[34px] px-3 bg-white"
-              title="Xóa nhanh form để tạo link tiếp theo"
+              title="Xóa nhanh form để nhập yêu cầu tiếp theo"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Tạo link tiếp</span>
+              <span>{activeTab === 'ONELINK' ? 'Gửi yêu cầu tiếp' : 'Tạo link tiếp'}</span>
             </button>
           </div>
         </div>
@@ -291,30 +287,15 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
         <div className="p-5 bg-[#fff4d1] border border-[#edce67] rounded-[18px] space-y-3 text-[#20201c]">
           <div className="flex items-center space-x-2 text-[#8a6200] font-extrabold text-sm">
             <AlertCircle className="w-5 h-5 flex-shrink-0" />
-            <span>Link này đã được {duplicateInfo.createdByName} tạo lúc {new Date(duplicateInfo.createdAt).toLocaleTimeString('vi-VN')}</span>
+            <span>
+              {activeTab === 'ONELINK'
+                ? `Yêu cầu này đã được ${duplicateInfo.createdByName} gửi trước đó lúc ${new Date(duplicateInfo.createdAt).toLocaleTimeString('vi-VN')}`
+                : `Link này đã được ${duplicateInfo.createdByName} tạo lúc ${new Date(duplicateInfo.createdAt).toLocaleTimeString('vi-VN')}`}
+            </span>
           </div>
           <div className="bg-white p-3.5 rounded-[12px] border border-[#deded7] text-xs space-y-1 font-mono">
-            <div><span className="text-[#71716a]">Link cũ: </span><span className="font-bold text-[#20201c] break-all">{duplicateInfo.finalLink}</span></div>
-            <div><span className="text-[#71716a]">Email người tạo: </span><span>{duplicateInfo.createdByEmail}</span></div>
-          </div>
-          <div className="flex items-center gap-2 pt-1">
-            <button
-              type="button"
-              onClick={() => handleCopyLink(duplicateInfo.finalLink)}
-              className="btn yellow text-xs min-h-[38px] px-4"
-            >
-              <Copy className="w-3.5 h-3.5" />
-              <span>Sao chép link cũ</span>
-            </button>
-            <a
-              href={duplicateInfo.finalLink}
-              target="_blank"
-              rel="noreferrer"
-              className="btn secondary text-xs min-h-[38px] px-4"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              <span>Mở link</span>
-            </a>
+            <div><span className="text-[#71716a]">Trạng thái / Link: </span><span className="font-bold text-[#20201c] break-all">{duplicateInfo.finalLink || 'Đang chờ tạo trên AppsFlyer'}</span></div>
+            <div><span className="text-[#71716a]">Email người gửi: </span><span>{duplicateInfo.createdByEmail}</span></div>
           </div>
         </div>
       )}
@@ -394,141 +375,304 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
             </div>
           </div>
         ) : (
-          /* AppsFlyer OneLink Form */
+          /* AppsFlyer OneLink Request Form */
           <div className="space-y-5">
+            {/* 4.1 OneLink Template */}
             <UrlAutocompleteInput
-              label="OneLink Template"
+              label="OneLink Template *"
               linkType="ONELINK"
               value={oneLinkTemplate}
               onChange={setOneLinkTemplate}
               required
               placeholder="https://duhat.onelink.me/abc1"
-              helpText="Link mẫu AppsFlyer được cấu hình sẵn. Tự động gợi ý các Template OneLink."
+              helpText="Chọn template AppsFlyer được cấu hình sẵn cho ứng dụng."
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* 4.2 Nguồn & 4.3 Hình thức & 4.4 Tên chiến dịch */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <AutocompleteInput
-                label="Media Source (pid)"
+                label="Nguồn / Nơi đặt link *"
                 categoryType="media_source"
                 linkType="ONELINK"
                 value={mediaSource}
                 onChange={setMediaSource}
                 required
-                placeholder="facebook_ads, tiktok_ads..."
-                helpText="Tham số pid."
+                placeholder="facebook, tiktok, zalo_oa, email, qr..."
+                helpText="Nơi link sẽ được phát hành (Tham số AppsFlyer: pid)."
               />
               <AutocompleteInput
-                label="Tên chiến dịch (c)"
+                label="Hình thức sử dụng *"
+                categoryType="channel"
+                linkType="ONELINK"
+                value={channel}
+                onChange={setChannel}
+                required
+                placeholder="Quảng cáo trả phí, Bài đăng tự nhiên, Email..."
+                helpText="Cách thức phân phối link (Tham số AppsFlyer: af_channel)."
+              />
+              <AutocompleteInput
+                label="Tên chiến dịch *"
                 categoryType="campaign_name"
                 linkType="ONELINK"
                 value={campaignName}
                 onChange={setCampaignName}
                 required
-                placeholder="app_install_2026..."
-                helpText="Tham số c."
+                placeholder="Siêu Sale 2026, Hội thảo Hà Nội..."
+                helpText="Tên chiến dịch nghiệp vụ (Tham số AppsFlyer: c)."
               />
             </div>
 
+            {/* 4.5 Mã quản lý & 4.6 Nhóm QC & 4.7 Mẫu QC */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t border-[#deded7]">
               <AutocompleteInput
-                label="Kênh (af_channel)"
-                categoryType="channel"
-                linkType="ONELINK"
-                value={channel}
-                onChange={setChannel}
-                placeholder="paid_social..."
-              />
-              <AutocompleteInput
-                label="ID Chiến dịch (af_c_id)"
+                label="Mã quản lý nội bộ"
                 categoryType="campaign_id"
                 linkType="ONELINK"
                 value={campaignId}
                 onChange={setCampaignId}
-                placeholder="c_1029..."
+                placeholder="cmp_sale_06, c_1029..."
+                helpText="Dùng đối soát hệ thống nội bộ (af_c_id)."
               />
               <AutocompleteInput
-                label="Nhóm QC (af_adset)"
+                label="Nhóm quảng cáo / Ad Set"
                 categoryType="ad_group"
                 linkType="ONELINK"
                 value={adGroup}
                 onChange={setAdGroup}
-                placeholder="adset_genz..."
+                placeholder="khach_cu, gen_z, hanoi_25_35..."
+                helpText="Phân biệt đối tượng nhóm quảng cáo (af_adset)."
               />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <AutocompleteInput
-                label="Mẫu Quảng Cáo (af_ad)"
+                label="Mẫu quảng cáo / Ad"
                 categoryType="ad_name"
                 linkType="ONELINK"
                 value={adName}
                 onChange={setAdName}
-                placeholder="video_review..."
+                placeholder="video_review, banner_red..."
+                helpText="Tên mẫu creative quảng cáo (af_ad)."
               />
+            </div>
+
+            {/* 4.8 Khách hàng mục tiêu & 4.10 Đích đến trong App */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-[#deded7]">
+              {/* 4.8 Khách hàng mục tiêu */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-black text-[#20201c]">
+                  Khách hàng mục tiêu <span className="text-[#b42318]">*</span>
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTargetUser('NEW_USER')}
+                    className={`px-3 py-2 text-xs font-bold rounded-[10px] border transition-all ${
+                      targetUser === 'NEW_USER'
+                        ? 'bg-[#20201c] text-white border-[#20201c]'
+                        : 'bg-white text-[#20201c] border-[#deded7] hover:bg-[#f5f5f0]'
+                    }`}
+                  >
+                    Khách mới
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTargetUser('EXISTING_USER')}
+                    className={`px-3 py-2 text-xs font-bold rounded-[10px] border transition-all ${
+                      targetUser === 'EXISTING_USER'
+                        ? 'bg-[#20201c] text-white border-[#20201c]'
+                        : 'bg-white text-[#20201c] border-[#deded7] hover:bg-[#f5f5f0]'
+                    }`}
+                  >
+                    Người đã cài App
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTargetUser('BOTH')}
+                    className={`px-3 py-2 text-xs font-bold rounded-[10px] border transition-all ${
+                      targetUser === 'BOTH'
+                        ? 'bg-[#20201c] text-white border-[#20201c]'
+                        : 'bg-white text-[#20201c] border-[#deded7] hover:bg-[#f5f5f0]'
+                    }`}
+                  >
+                    Cả hai
+                  </button>
+                </div>
+                <p className="text-[11px] text-[#71716a] m-0 italic">
+                  💡 Người phụ trách AppsFlyer sẽ kiểm tra và quyết định cấu hình Retargeting khi tạo link.
+                </p>
+              </div>
+
+              {/* 4.10 Đích đến trong App */}
               <AutocompleteInput
-                label="Màn Hình App (deep_link_value)"
+                label="Đích đến trong App *"
                 categoryType="deep_link_screen"
                 linkType="ONELINK"
                 value={deepLinkValue}
                 onChange={setDeepLinkValue}
-                placeholder="create_poll, home..."
+                required
+                placeholder="Trang chủ, Tạo khảo sát, Chi tiết khảo sát..."
+                helpText="Chỉ chọn màn hình đã được Product/Developer xác nhận hỗ trợ."
               />
-              <div className="flex items-center pt-7 space-x-2">
+            </div>
+
+            {/* 4.11 Đuôi link mong muốn & 4.13 Thông tin bổ sung */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-[#deded7]">
+              <div className="space-y-1">
+                <label className="block text-xs font-black text-[#20201c]">Đuôi link mong muốn (Slug)</label>
                 <input
-                  type="checkbox"
-                  id="retargetingCheck"
-                  checked={isRetargeting}
-                  onChange={(e) => setIsRetargeting(e.target.checked)}
-                  className="w-4 h-4 accent-[#20201c]"
+                  type="text"
+                  value={desiredSlug}
+                  onChange={(e) => setDesiredSlug(e.target.value.toLowerCase().replace(/[^a-z0-9\-_]/g, ''))}
+                  placeholder="tet2026, survey2026..."
+                  className="w-full px-3.5 py-2.5 bg-white border border-[#deded7] rounded-[12px] text-xs font-mono text-[#20201c] focus:outline-none focus:border-[#20201c]"
                 />
-                <label htmlFor="retargetingCheck" className="text-xs font-extrabold text-[#20201c] cursor-pointer">
-                  Retargeting Campaign (is_retargeting)
-                </label>
+                <p className="text-[11px] text-[#8a6200] m-0 italic">
+                  ⚠️ Đuôi link chỉ là đề xuất. Link thực tế phụ thuộc khả năng khởi tạo trên AppsFlyer.
+                </p>
               </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-black text-[#20201c]">Ghi chú / Thông tin phụ</label>
+                <input
+                  type="text"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Dùng cho standee Hội thảo, Cần xong trước 15/08..."
+                  className="w-full px-3.5 py-2.5 bg-white border border-[#deded7] rounded-[12px] text-xs text-[#20201c] focus:outline-none focus:border-[#20201c]"
+                />
+                <p className="text-[11px] text-[#71716a] m-0">
+                  Bổ sung các thông tin hoặc thời hạn yêu cầu cho chuyên viên xử lý.
+                </p>
+              </div>
+            </div>
+
+            {/* 4.12 Hiển thị Mạng Xã Hội (Social Media Preview) */}
+            <div className="p-4 bg-[#f8f8f6] rounded-[16px] border border-[#e5e5e0] space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 font-bold text-xs text-[#20201c]">
+                  <Share2 className="w-4 h-4 text-[#8a6200]" />
+                  <span>Hiển thị Mạng Xã Hội (Social Media Preview)</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setEnableSocialPreview(false)}
+                    className={`px-2.5 py-1 rounded-full font-bold text-[11px] transition-all ${
+                      !enableSocialPreview ? 'bg-[#20201c] text-white' : 'bg-white text-[#71716a] border border-[#deded7]'
+                    }`}
+                  >
+                    Mặc định
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEnableSocialPreview(true)}
+                    className={`px-2.5 py-1 rounded-full font-bold text-[11px] transition-all ${
+                      enableSocialPreview ? 'bg-[#8a6200] text-white' : 'bg-white text-[#71716a] border border-[#deded7]'
+                    }`}
+                  >
+                    Có yêu cầu riêng
+                  </button>
+                </div>
+              </div>
+
+              {enableSocialPreview && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-[#deded7]">
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-extrabold text-[#20201c]">Tiêu đề hiển thị</label>
+                    <input
+                      type="text"
+                      value={socialTitle}
+                      onChange={(e) => setSocialTitle(e.target.value)}
+                      placeholder="Tham gia Khảo sát nhận Voucher..."
+                      className="w-full px-3 py-2 bg-white border border-[#deded7] rounded-[10px] text-xs text-[#20201c]"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-extrabold text-[#20201c]">Mô tả hiển thị</label>
+                    <input
+                      type="text"
+                      value={socialDescription}
+                      onChange={(e) => setSocialDescription(e.target.value)}
+                      placeholder="Chương trình ưu đãi đặc biệt tháng 8..."
+                      className="w-full px-3 py-2 bg-white border border-[#deded7] rounded-[10px] text-xs text-[#20201c]"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-extrabold text-[#20201c]">Link hình ảnh mong muốn</label>
+                    <input
+                      type="url"
+                      value={socialImageUrl}
+                      onChange={(e) => setSocialImageUrl(e.target.value)}
+                      placeholder="https://example.com/banner.png"
+                      className="w-full px-3 py-2 bg-white border border-[#deded7] rounded-[10px] text-xs text-[#20201c]"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* DÒNG LINK DỰ KIẾN (LIVE EXPECTED LINK PREVIEW ROW) */}
-        <div className="p-5 bg-gradient-to-r from-[#fffcf2] via-white to-[#fffcf2] border border-[#ffcc00]/60 rounded-[20px] space-y-2 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 font-black text-xs uppercase tracking-wider text-[#8a6200]">
-              <LinkIcon className="w-4 h-4 text-[#8a6200]" />
-              <span>LINK DỰ KIẾN</span>
-              <span className="w-2 h-2 rounded-full bg-[#176b46] animate-pulse"></span>
+        {/* SUMMARY / PREVIEW ROW */}
+        {activeTab === 'UTM' ? (
+          <div className="p-5 bg-gradient-to-r from-[#fffcf2] via-white to-[#fffcf2] border border-[#ffcc00]/60 rounded-[20px] space-y-2 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 font-black text-xs uppercase tracking-wider text-[#8a6200]">
+                <LinkIcon className="w-4 h-4 text-[#8a6200]" />
+                <span>LINK DỰ KIẾN</span>
+                <span className="w-2 h-2 rounded-full bg-[#176b46] animate-pulse"></span>
+              </div>
+
+              {liveUtmPreview && (
+                <button
+                  type="button"
+                  onClick={() => handleCopyPreview(liveUtmPreview)}
+                  className="px-3 py-1 bg-[#ffcc00] hover:bg-[#ebd217] text-[#20201c] rounded-full text-[11px] font-black transition-all border-0 cursor-pointer flex items-center gap-1"
+                >
+                  {copiedPreview ? (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Đã chép</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Sao chép</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
 
-            {livePreview && (
-              <button
-                type="button"
-                onClick={() => handleCopyPreview(livePreview)}
-                className="px-3 py-1 bg-[#ffcc00] hover:bg-[#ebd217] text-[#20201c] rounded-full text-[11px] font-black transition-all border-0 cursor-pointer flex items-center gap-1"
-              >
-                {copiedPreview ? (
-                  <>
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Đã chép</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Sao chép</span>
-                  </>
-                )}
-              </button>
+            {liveUtmPreview ? (
+              <p className="m-0 font-mono text-xs sm:text-sm font-bold text-[#20201c] break-all select-all leading-relaxed pt-1">
+                {liveUtmPreview}
+              </p>
+            ) : (
+              <p className="m-0 font-sans text-xs text-[#71716a] italic pt-1">
+                Bắt đầu nhập thông tin ở trên để tạo và cập nhật link dự kiến theo thời gian thực...
+              </p>
             )}
           </div>
+        ) : (
+          /* THÔNG TIN YÊU CẦU SUMMARY BOX FOR ONELINK */
+          <div className="p-5 bg-gradient-to-r from-[#fffcf2] via-white to-[#fffcf2] border border-[#ffcc00]/60 rounded-[20px] space-y-3 shadow-sm text-xs">
+            <div className="flex items-center justify-between border-b border-[#edce67]/50 pb-2">
+              <div className="flex items-center gap-2 font-black uppercase tracking-wider text-[#8a6200]">
+                <FileText className="w-4 h-4 text-[#8a6200]" />
+                <span>THÔNG TIN YÊU CẦU ONELINK</span>
+              </div>
+              <span className="duhat-badge yellow text-[10px]">Mới tạo - Chờ xử lý</span>
+            </div>
 
-          {livePreview ? (
-            <p className="m-0 font-mono text-xs sm:text-sm font-bold text-[#20201c] break-all select-all leading-relaxed pt-1">
-              {livePreview}
-            </p>
-          ) : (
-            <p className="m-0 font-sans text-xs text-[#71716a] italic pt-1">
-              Bắt đầu nhập thông tin ở trên để tạo và cập nhật link dự kiến theo thời gian thực...
-            </p>
-          )}
-        </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-[#20201c]">
+              <div><span className="text-[#71716a]">Nguồn đặt link:</span> <strong>{mediaSource || '—'}</strong></div>
+              <div><span className="text-[#71716a]">Hình thức:</span> <strong>{channel || '—'}</strong></div>
+              <div><span className="text-[#71716a]">Tên chiến dịch:</span> <strong>{campaignName || '—'}</strong></div>
+              <div><span className="text-[#71716a]">Khách hàng:</span> <strong>{targetUserLabel}</strong></div>
+              <div><span className="text-[#71716a]">Đích đến App:</span> <strong>{deepLinkValue || '—'}</strong></div>
+              <div><span className="text-[#71716a]">Đuôi mong muốn:</span> <code className="bg-[#ebd217]/20 px-1 rounded font-mono">{desiredSlug || 'Tự động'}</code></div>
+            </div>
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-2">
@@ -536,51 +680,72 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
             type="button"
             onClick={handleResetForm}
             className="w-full sm:w-auto btn secondary text-xs min-h-[44px] px-4 text-[#b42318] border-[#deded7] hover:bg-[#fff0ed] hover:border-[#fecdca] transition-colors"
-            title="Xóa tất cả các ô nhập liệu để bắt đầu điền link mới"
+            title="Xóa tất cả các ô nhập liệu để bắt đầu điền lại"
           >
             <RotateCcw className="w-4 h-4 text-[#b42318]" />
-            <span>Xóa form để điền link tiếp</span>
+            <span>Xóa form điền lại</span>
           </button>
 
           <button type="submit" className="w-full sm:w-auto btn primary min-h-[44px]">
-            <span>Xác nhận &amp; tạo link</span>
-            <span className="arrow">→</span>
+            {activeTab === 'ONELINK' ? (
+              <>
+                <Send className="w-4 h-4" />
+                <span>Gửi yêu cầu OneLink</span>
+              </>
+            ) : (
+              <>
+                <span>Xác nhận &amp; tạo link</span>
+                <span className="arrow">→</span>
+              </>
+            )}
           </button>
         </div>
       </form>
 
-      {/* Result Card for Newly Created Link */}
+      {/* Result Card for Newly Created Link / Request */}
       {createdLinkRecord && (
         <div className="p-6 color-[#ffffff] bg-[#20201c] border-radius-[18px] space-y-4 rounded-[18px] text-white">
           <div className="flex items-center justify-between">
             <p className="m-0 text-[#c9c9c1] text-[11px] font-black tracking-[0.08em] uppercase">
-              LINK VỪA TẠO VÀ ĐỒNG BỘ SHAREPOINT
+              {createdLinkRecord.linkType === 'ONELINK' ? 'YÊU CẦU ĐÃ ĐƯỢC LƯU VÀO HỆ THỐNG' : 'LINK VỪA TẠO VÀ ĐỒNG BỘ SHAREPOINT'}
             </p>
-            <span className="duhat-badge synced">Đã đồng bộ</span>
+            <span className="duhat-badge synced">
+              {createdLinkRecord.linkType === 'ONELINK' ? 'Chờ AppsFlyer Admin' : 'Đã đồng bộ'}
+            </span>
           </div>
 
-          <p className="m-0 font-mono text-xs break-all text-white select-all">
-            {createdLinkRecord.finalLink}
-          </p>
+          {createdLinkRecord.finalLink ? (
+            <p className="m-0 font-mono text-xs break-all text-white select-all">
+              {createdLinkRecord.finalLink}
+            </p>
+          ) : (
+            <div className="text-xs text-[#deded7] space-y-1">
+              <div>Mã yêu cầu: <strong className="font-mono text-white">#{createdLinkRecord.id.slice(0, 8)}</strong></div>
+              <div>Người yêu cầu: <strong className="text-white">{createdLinkRecord.createdByName}</strong></div>
+              <div className="text-[#ebd217] pt-1">👉 Người phụ trách sẽ khởi tạo OneLink trên AppsFlyer Dashboard và cập nhật link hoàn chỉnh vào hệ thống.</div>
+            </div>
+          )}
 
-          <div className="flex flex-wrap items-center gap-3 pt-2">
-            <button
-              onClick={() => handleCopyLink(createdLinkRecord.finalLink)}
-              className="btn yellow"
-            >
-              <span>{copied ? 'Đã sao chép!' : 'Sao chép link'}</span>
-            </button>
+          {createdLinkRecord.finalLink && (
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <button
+                onClick={() => handleCopyLink(createdLinkRecord.finalLink)}
+                className="btn yellow"
+              >
+                <span>{copied ? 'Đã sao chép!' : 'Sao chép link'}</span>
+              </button>
 
-            <a
-              href={createdLinkRecord.finalLink}
-              target="_blank"
-              rel="noreferrer"
-              className="btn secondary"
-            >
-              <ExternalLink className="w-4 h-4" />
-              <span>Mở link</span>
-            </a>
-          </div>
+              <a
+                href={createdLinkRecord.finalLink}
+                target="_blank"
+                rel="noreferrer"
+                className="btn secondary"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>Mở link</span>
+              </a>
+            </div>
+          )}
         </div>
       )}
 
@@ -595,8 +760,10 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
         source={activeTab === 'UTM' ? utmSource : mediaSource}
         medium={activeTab === 'UTM' ? utmMedium : channel}
         campaign={activeTab === 'UTM' ? utmCampaign : campaignName}
-        previewLink={livePreview}
+        previewLink={liveUtmPreview}
         creatorName={currentUser.fullName}
+        targetUserLabel={targetUserLabel}
+        deepLinkScreenLabel={deepLinkValue}
       />
     </div>
   );

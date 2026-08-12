@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
-import { generateUtmUrl, generateOneLinkUrl } from '@/lib/link-generator';
-import { computeLinkHash } from '@/lib/url-normalizer';
+import { generateUtmUrl } from '@/lib/link-generator';
+import { computeLinkHash, computeOneLinkRequestHash } from '@/lib/url-normalizer';
 import { createLinkRecord, getAllLinks, touchCatalogItem } from '@/lib/db';
 import { syncLinkToSharePoint } from '@/lib/sharepoint-sync';
 
@@ -17,7 +17,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const user = await getSessionUser();
   if (!user) {
-    return NextResponse.json({ error: 'Bạn cần đăng nhập để tạo link.' }, { status: 401 });
+    return NextResponse.json({ error: 'Bạn cần đăng nhập để gửi yêu cầu.' }, { status: 401 });
   }
 
   try {
@@ -26,11 +26,13 @@ export async function POST(req: Request) {
 
     let finalLink = '';
     let originalUrl = '';
+    let linkHash = '';
+    let requestStatus: 'NEW' | 'COMPLETED' = 'COMPLETED';
 
     if (linkType === 'UTM') {
       const { originalUrl: rawUrl, utmSource, utmMedium, utmCampaign, utmId, utmContent, utmTerm } = body;
       if (!rawUrl || !utmSource || !utmMedium || !utmCampaign) {
-        return NextResponse.json({ error: 'Thiếu trường bắt buộc cho Google UTM (URL, Source, Medium, Campaign).' }, { status: 400 });
+        return NextResponse.json({ error: 'Thiếu trường bắt buộc cho Google UTM (URL, Nguồn, Kênh, Tên chiến dịch).' }, { status: 400 });
       }
 
       originalUrl = rawUrl;
@@ -44,6 +46,9 @@ export async function POST(req: Request) {
         utmTerm,
       });
 
+      linkHash = computeLinkHash(finalLink);
+      requestStatus = 'COMPLETED';
+
       // Update Catalog usage for UTM
       await touchCatalogItem('utm_source', utmSource, 'UTM', user.id);
       await touchCatalogItem('utm_medium', utmMedium, 'UTM', user.id);
@@ -56,50 +61,50 @@ export async function POST(req: Request) {
       const {
         oneLinkTemplate,
         mediaSource,
-        campaignName,
         channel,
+        campaignName,
         campaignId,
         adGroup,
         adName,
-        keywords,
+        targetUser,
         deepLinkValue,
-        isRetargeting,
+        desiredSlug,
+        socialPreview,
+        note,
       } = body;
 
-      if (!oneLinkTemplate || !mediaSource || !campaignName) {
-        return NextResponse.json({ error: 'Thiếu trường bắt buộc cho AppsFlyer OneLink (Template, Media Source, Campaign).' }, { status: 400 });
+      if (!oneLinkTemplate || !mediaSource || !channel || !campaignName || !targetUser || !deepLinkValue) {
+        return NextResponse.json({ error: 'Thiếu trường bắt buộc cho Yêu cầu OneLink (Template, Nguồn, Hình thức, Chiến dịch, Khách hàng mục tiêu, Đích đến trong App).' }, { status: 400 });
       }
 
       originalUrl = oneLinkTemplate;
-      finalLink = generateOneLinkUrl({
+      finalLink = ''; // Will be populated by AppsFlyer Admin later
+      requestStatus = 'NEW';
+
+      // Compute hash based on request composite keys
+      linkHash = computeOneLinkRequestHash({
         oneLinkTemplate,
         mediaSource,
         campaignName,
         channel,
-        campaignId,
+        deepLinkValue,
+        targetUser,
         adGroup,
         adName,
-        keywords,
-        deepLinkValue,
-        isRetargeting,
       });
 
       // Update Catalog usage for ONELINK
       await touchCatalogItem('media_source', mediaSource, 'ONELINK', user.id);
+      await touchCatalogItem('channel', channel, 'ONELINK', user.id);
       await touchCatalogItem('campaign_name', campaignName, 'ONELINK', user.id);
-      if (channel) await touchCatalogItem('channel', channel, 'ONELINK', user.id);
       if (campaignId) await touchCatalogItem('campaign_id', campaignId, 'ONELINK', user.id);
       if (adGroup) await touchCatalogItem('ad_group', adGroup, 'ONELINK', user.id);
       if (adName) await touchCatalogItem('ad_name', adName, 'ONELINK', user.id);
-      if (keywords) await touchCatalogItem('keywords', keywords, 'ONELINK', user.id);
       if (deepLinkValue) await touchCatalogItem('deep_link_screen', deepLinkValue, 'ONELINK', user.id);
 
     } else {
       return NextResponse.json({ error: 'Loại link không hợp lệ (Chỉ hỗ trợ UTM hoặc ONELINK).' }, { status: 400 });
     }
-
-    // Compute SHA-256 Hash
-    const linkHash = computeLinkHash(finalLink);
 
     // Attempt DB insert
     let linkRecord;
@@ -109,6 +114,7 @@ export async function POST(req: Request) {
         originalUrl,
         finalLink,
         linkHash,
+        status: requestStatus,
         utmSource: body.utmSource || body.mediaSource,
         utmMedium: body.utmMedium || body.channel,
         utmCampaign: body.utmCampaign || body.campaignName,
@@ -120,9 +126,12 @@ export async function POST(req: Request) {
         afCId: body.campaignId,
         afAdset: body.adGroup,
         afAd: body.adName,
-        afKeywords: body.keywords,
         deepLinkValue: body.deepLinkValue,
-        isRetargeting: body.isRetargeting || false,
+        isRetargeting: body.targetUser === 'EXISTING_USER' || body.targetUser === 'BOTH',
+        targetUser: body.targetUser,
+        desiredSlug: body.desiredSlug,
+        socialPreview: body.socialPreview,
+        note: body.note,
         createdByUserId: user.id,
         createdByName: user.fullName,
         createdByEmail: user.email,
@@ -134,10 +143,12 @@ export async function POST(req: Request) {
         const ext = dbErr.existingRecord;
         return NextResponse.json(
           {
-            error: 'Link này đã được tạo trước đó trong hệ thống!',
+            error: linkType === 'ONELINK' 
+              ? 'Yêu cầu OneLink với cấu hình này đã được gửi trước đó!'
+              : 'Link này đã được tạo trước đó trong hệ thống!',
             isDuplicate: true,
             existingRecord: {
-              finalLink: ext.finalLink,
+              finalLink: ext.finalLink || 'Đang chờ tạo trên AppsFlyer',
               createdByName: ext.createdByName,
               createdByEmail: ext.createdByEmail,
               createdAt: ext.createdAt,
@@ -152,8 +163,12 @@ export async function POST(req: Request) {
     // Trigger async SharePoint Excel Sync
     syncLinkToSharePoint(linkRecord).catch((err) => console.error('SharePoint Sync Background Error:', err));
 
-    return NextResponse.json({ linkRecord, message: 'Tạo link thành công!' }, { status: 201 });
+    return NextResponse.json({ 
+      linkRecord, 
+      message: linkType === 'ONELINK' ? 'Gửi yêu cầu OneLink thành công! Đang chờ xử lý.' : 'Tạo link thành công!' 
+    }, { status: 201 });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Lỗi xử lý tạo link.' }, { status: 500 });
+    return NextResponse.json({ error: err.message || 'Lỗi xử lý gửi yêu cầu.' }, { status: 500 });
   }
 }
+

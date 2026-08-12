@@ -14,8 +14,10 @@ interface ConfirmModalProps {
   source: string;
   medium: string;
   campaign: string;
-  previewLink: string;
+  previewLink?: string;
   creatorName: string;
+  targetUserLabel?: string;
+  deepLinkScreenLabel?: string;
 }
 
 export default function ConfirmModal({
@@ -30,6 +32,8 @@ export default function ConfirmModal({
   campaign,
   previewLink,
   creatorName,
+  targetUserLabel,
+  deepLinkScreenLabel,
 }: ConfirmModalProps) {
   if (!isOpen) return null;
 
@@ -43,10 +47,12 @@ export default function ConfirmModal({
               BƯỚC XÁC NHẬN CUỐI
             </p>
             <h3 className="m-0 mt-1.5 text-2xl sm:text-3xl font-extrabold tracking-[-0.035em]">
-              Kiểm tra trước khi tạo link
+              {linkType === 'UTM' ? 'Kiểm tra trước khi tạo link' : 'Xác nhận gửi yêu cầu OneLink'}
             </h3>
             <p className="m-0 mt-1 text-xs text-[#71716a]">
-              Hệ thống sẽ chuẩn hóa URL và kiểm tra trùng SHA-256 trong PostgreSQL trước khi lưu.
+              {linkType === 'UTM'
+                ? 'Hệ thống sẽ chuẩn hóa URL và kiểm tra trùng SHA-256 trước khi lưu.'
+                : 'Yêu cầu sẽ được lưu vào hệ thống để người phụ trách khởi tạo trên AppsFlyer Dashboard.'}
             </p>
           </div>
           <button
@@ -61,14 +67,14 @@ export default function ConfirmModal({
         {/* Summary Box */}
         <div className="my-5 border border-[#deded7] rounded-[14px] overflow-hidden bg-white">
           <div className="grid grid-cols-[130px_1fr] gap-2.5 p-3 border-b border-[#deded7] text-xs">
-            <b className="text-[#71716a] font-medium">Loại link:</b>
+            <b className="text-[#71716a] font-medium">Loại thao tác:</b>
             <strong className="text-[#20201c] font-bold">
-              {linkType === 'UTM' ? 'Google UTM' : 'AppsFlyer OneLink'}
+              {linkType === 'UTM' ? 'Tạo Google UTM' : 'Yêu cầu AppsFlyer OneLink'}
             </strong>
           </div>
 
           <div className="grid grid-cols-[130px_1fr] gap-2.5 p-3 border-b border-[#deded7] text-xs">
-            <b className="text-[#71716a] font-medium">URL Đích:</b>
+            <b className="text-[#71716a] font-medium">{linkType === 'UTM' ? 'URL Đích:' : 'Template:'}</b>
             <strong className="text-[#20201c] font-mono break-all">{originalUrl}</strong>
           </div>
 
@@ -84,15 +90,39 @@ export default function ConfirmModal({
             <strong className="text-[#20201c]">{campaign}</strong>
           </div>
 
+          {linkType === 'ONELINK' && (
+            <>
+              {targetUserLabel && (
+                <div className="grid grid-cols-[130px_1fr] gap-2.5 p-3 border-b border-[#deded7] text-xs">
+                  <b className="text-[#71716a] font-medium">Khách hàng:</b>
+                  <strong className="text-[#20201c]">{targetUserLabel}</strong>
+                </div>
+              )}
+              {deepLinkScreenLabel && (
+                <div className="grid grid-cols-[130px_1fr] gap-2.5 p-3 border-b border-[#deded7] text-xs">
+                  <b className="text-[#71716a] font-medium">Đích đến App:</b>
+                  <strong className="text-[#20201c]">{deepLinkScreenLabel}</strong>
+                </div>
+              )}
+            </>
+          )}
+
           <div className="grid grid-cols-[130px_1fr] gap-2.5 p-3 border-b border-[#deded7] text-xs">
-            <b className="text-[#71716a] font-medium">Người tạo:</b>
+            <b className="text-[#71716a] font-medium">Người gửi:</b>
             <strong className="text-[#8a6200]">{creatorName}</strong>
           </div>
 
-          <div className="grid grid-cols-[130px_1fr] gap-2.5 p-3 text-xs bg-[#f9f9f6]">
-            <b className="text-[#71716a] font-medium">Link dự kiến:</b>
-            <span className="font-mono text-[11px] text-[#20201c] break-all select-all">{previewLink}</span>
-          </div>
+          {linkType === 'UTM' ? (
+            <div className="grid grid-cols-[130px_1fr] gap-2.5 p-3 text-xs bg-[#f9f9f6]">
+              <b className="text-[#71716a] font-medium">Link dự kiến:</b>
+              <span className="font-mono text-[11px] text-[#20201c] break-all select-all">{previewLink}</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-[130px_1fr] gap-2.5 p-3 text-xs bg-[#fffcf2]">
+              <b className="text-[#8a6200] font-bold">Trạng thái sau gửi:</b>
+              <span className="font-bold text-[#8a6200]">Mới tạo (Chờ người phụ trách xử lý trên AppsFlyer)</span>
+            </div>
+          )}
         </div>
 
         {/* Modal Actions */}
@@ -115,7 +145,7 @@ export default function ConfirmModal({
               <span>Đang xử lý...</span>
             ) : (
               <>
-                <span>Xác nhận &amp; tạo link</span>
+                <span>{linkType === 'UTM' ? 'Xác nhận & tạo link' : 'Xác nhận & Gửi yêu cầu'}</span>
                 <span className="arrow">→</span>
               </>
             )}
@@ -125,3 +155,4 @@ export default function ConfirmModal({
     </div>
   );
 }
+

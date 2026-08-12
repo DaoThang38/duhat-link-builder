@@ -332,6 +332,7 @@ export async function initDbSchema() {
         original_url TEXT NOT NULL,
         final_link TEXT NOT NULL,
         link_hash VARCHAR(64) UNIQUE NOT NULL,
+        status VARCHAR(30) DEFAULT 'COMPLETED',
         utm_source VARCHAR(100),
         utm_medium VARCHAR(100),
         utm_campaign VARCHAR(150),
@@ -346,6 +347,13 @@ export async function initDbSchema() {
         af_keywords VARCHAR(150),
         deep_link_value VARCHAR(255),
         is_retargeting BOOLEAN DEFAULT FALSE,
+        target_user VARCHAR(50),
+        desired_slug VARCHAR(100),
+        social_preview JSONB,
+        note TEXT,
+        processed_by_user_id VARCHAR(255),
+        processed_by_name VARCHAR(100),
+        processed_at TIMESTAMP WITH TIME ZONE,
         created_by_user_id VARCHAR(255) NOT NULL,
         created_by_name VARCHAR(100) NOT NULL,
         created_by_email VARCHAR(255) NOT NULL,
@@ -355,6 +363,16 @@ export async function initDbSchema() {
         synced_at TIMESTAMP WITH TIME ZONE,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
+
+      ALTER TABLE link_history ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'COMPLETED';
+      ALTER TABLE link_history ADD COLUMN IF NOT EXISTS target_user VARCHAR(50);
+      ALTER TABLE link_history ADD COLUMN IF NOT EXISTS desired_slug VARCHAR(100);
+      ALTER TABLE link_history ADD COLUMN IF NOT EXISTS social_preview JSONB;
+      ALTER TABLE link_history ADD COLUMN IF NOT EXISTS note TEXT;
+      ALTER TABLE link_history ADD COLUMN IF NOT EXISTS processed_by_user_id VARCHAR(255);
+      ALTER TABLE link_history ADD COLUMN IF NOT EXISTS processed_by_name VARCHAR(100);
+      ALTER TABLE link_history ADD COLUMN IF NOT EXISTS processed_at TIMESTAMP WITH TIME ZONE;
+
     `);
 
     // Delete existing duplicate rows in PostgreSQL
@@ -504,6 +522,8 @@ export async function getLinkByHash(linkHash: string): Promise<LinkRecord | null
 
 export async function createLinkRecord(record: Omit<LinkRecord, 'id' | 'createdAt'>): Promise<LinkRecord> {
   const linkId = crypto.randomUUID();
+  const status = record.status || (record.linkType === 'ONELINK' ? 'NEW' : 'COMPLETED');
+
   if (pool) {
     const existing = await getLinkByHash(record.linkHash);
     if (existing) {
@@ -515,15 +535,17 @@ export async function createLinkRecord(record: Omit<LinkRecord, 'id' | 'createdA
     try {
       const res = await pool.query(
         `INSERT INTO link_history (
-          id, link_type, original_url, final_link, link_hash,
+          id, link_type, original_url, final_link, link_hash, status,
           utm_source, utm_medium, utm_campaign, utm_id, utm_content, utm_term,
           media_source, af_channel, af_c_id, af_adset, af_ad, af_keywords, deep_link_value, is_retargeting,
+          target_user, desired_slug, social_preview, note,
           created_by_user_id, created_by_name, created_by_email, sync_status, sync_attempts, last_sync_error
         ) VALUES (
-          $1, $2, $3, $4, $5,
-          $6, $7, $8, $9, $10, $11,
-          $12, $13, $14, $15, $16, $17, $18, $19,
-          $20, $21, $22, $23, $24, $25
+          $1, $2, $3, $4, $5, $6,
+          $7, $8, $9, $10, $11, $12,
+          $13, $14, $15, $16, $17, $18, $19, $20,
+          $21, $22, $23, $24,
+          $25, $26, $27, $28, $29, $30
         ) RETURNING *`,
         [
           linkId,
@@ -531,6 +553,7 @@ export async function createLinkRecord(record: Omit<LinkRecord, 'id' | 'createdA
           record.originalUrl,
           record.finalLink,
           record.linkHash,
+          status,
           record.utmSource || null,
           record.utmMedium || null,
           record.utmCampaign || null,
@@ -545,6 +568,10 @@ export async function createLinkRecord(record: Omit<LinkRecord, 'id' | 'createdA
           record.afKeywords || null,
           record.deepLinkValue || null,
           record.isRetargeting || false,
+          record.targetUser || null,
+          record.desiredSlug || null,
+          record.socialPreview ? JSON.stringify(record.socialPreview) : null,
+          record.note || null,
           record.createdByUserId,
           record.createdByName,
           record.createdByEmail,
@@ -575,6 +602,7 @@ export async function createLinkRecord(record: Omit<LinkRecord, 'id' | 'createdA
     const newRecord: LinkRecord = {
       ...record,
       id: linkId,
+      status,
       createdAt: new Date().toISOString(),
     };
     db.links.unshift(newRecord);
@@ -582,6 +610,7 @@ export async function createLinkRecord(record: Omit<LinkRecord, 'id' | 'createdA
     return newRecord;
   }
 }
+
 
 export async function getAllLinks(): Promise<LinkRecord[]> {
   if (pool) {
@@ -811,6 +840,43 @@ export async function deleteCatalogItem(id: string): Promise<boolean> {
   }
 }
 
+export async function updateOneLinkStatusAndUrl(
+  id: string,
+  finalLink: string,
+  status: 'NEW' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED',
+  processedByUserId: string,
+  processedByName: string
+): Promise<LinkRecord | null> {
+  const processedAt = new Date().toISOString();
+
+  if (pool) {
+    const res = await pool.query(
+      `UPDATE link_history
+       SET final_link = $1,
+           status = $2,
+           processed_by_user_id = $3,
+           processed_by_name = $4,
+           processed_at = CURRENT_TIMESTAMP
+       WHERE id = $5
+       RETURNING *`,
+      [finalLink.trim(), status, processedByUserId, processedByName, id]
+    );
+    if (res.rows.length === 0) return null;
+    return mapPgLinkRow(res.rows[0]);
+  } else {
+    const db = getLocalDB();
+    const item = db.links.find((l) => l.id === id);
+    if (!item) return null;
+    item.finalLink = finalLink.trim();
+    item.status = status;
+    item.processedByUserId = processedByUserId;
+    item.processedByName = processedByName;
+    item.processedAt = processedAt;
+    saveLocalDB(db);
+    return item;
+  }
+}
+
 function mapPgLinkRow(row: any): LinkRecord {
   return {
     id: row.id,
@@ -818,6 +884,7 @@ function mapPgLinkRow(row: any): LinkRecord {
     originalUrl: row.original_url,
     finalLink: row.final_link,
     linkHash: row.link_hash,
+    status: row.status || (row.link_type === 'ONELINK' ? 'NEW' : 'COMPLETED'),
     utmSource: row.utm_source,
     utmMedium: row.utm_medium,
     utmCampaign: row.utm_campaign,
@@ -832,6 +899,13 @@ function mapPgLinkRow(row: any): LinkRecord {
     afKeywords: row.af_keywords,
     deepLinkValue: row.deep_link_value,
     isRetargeting: row.is_retargeting,
+    targetUser: row.target_user,
+    desiredSlug: row.desired_slug,
+    socialPreview: typeof row.social_preview === 'string' ? JSON.parse(row.social_preview) : row.social_preview,
+    note: row.note,
+    processedByUserId: row.processed_by_user_id,
+    processedByName: row.processed_by_name,
+    processedAt: row.processed_at,
     createdByUserId: row.created_by_user_id,
     createdByName: row.created_by_name,
     createdByEmail: row.created_by_email,
@@ -842,6 +916,7 @@ function mapPgLinkRow(row: any): LinkRecord {
     createdAt: row.created_at,
   };
 }
+
 
 function mapPgCatalogRow(row: any): CatalogItem {
   return {

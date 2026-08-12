@@ -12,6 +12,17 @@ export type LinkType = 'UTM' | 'ONELINK';
 
 export type SyncStatus = 'PENDING' | 'SUCCESS' | 'FAILED';
 
+export type RequestStatus = 'NEW' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED';
+
+export type TargetUserType = 'NEW_USER' | 'EXISTING_USER' | 'BOTH';
+
+export interface SocialPreviewConfig {
+  enabled: boolean;
+  title?: string;
+  description?: string;
+  imageUrl?: string;
+}
+
 export interface LinkRecord {
   id: string;
   linkType: LinkType;
@@ -19,6 +30,9 @@ export interface LinkRecord {
   finalLink: string;
   linkHash: string;
   
+  // Request Status for AppsFlyer OneLink
+  status?: RequestStatus;
+
   // UTM parameters
   utmSource?: string;
   utmMedium?: string;
@@ -27,7 +41,7 @@ export interface LinkRecord {
   utmContent?: string;
   utmTerm?: string;
   
-  // AppsFlyer parameters
+  // AppsFlyer parameters & Request Metadata
   mediaSource?: string;
   afChannel?: string;
   afCId?: string;
@@ -36,6 +50,17 @@ export interface LinkRecord {
   afKeywords?: string;
   deepLinkValue?: string;
   isRetargeting?: boolean;
+  
+  // New OneLink Request Fields
+  targetUser?: TargetUserType;
+  desiredSlug?: string;
+  socialPreview?: SocialPreviewConfig;
+  note?: string;
+
+  // AppsFlyer Admin Processing Info
+  processedByUserId?: string;
+  processedByName?: string;
+  processedAt?: string;
 
   // Creator Info
   createdByUserId: string;
@@ -76,15 +101,20 @@ export interface UtmInputParams {
 export interface OneLinkInputParams {
   oneLinkTemplate: string;
   mediaSource: string;
+  channel: string;
   campaignName: string;
-  channel?: string;
   campaignId?: string;
   adGroup?: string;
   adName?: string;
   keywords?: string;
-  deepLinkValue?: string;
+  targetUser?: TargetUserType;
+  deepLinkValue: string;
+  desiredSlug?: string;
+  socialPreview?: SocialPreviewConfig;
+  note?: string;
   isRetargeting?: boolean;
 }
+
 
 export interface DuplicateLinkErrorResponse {
   error: string;

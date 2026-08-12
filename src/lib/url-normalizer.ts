@@ -66,3 +66,32 @@ export function computeLinkHash(rawUrl: string): string {
   const normalized = normalizeUrl(rawUrl);
   return crypto.createHash('sha256').update(normalized, 'utf8').digest('hex');
 }
+
+/**
+ * Generates SHA-256 hash string for OneLink Request composite keys
+ * Format: template|media_source|campaign_name|channel|deep_link_value|target_user|adset|ad
+ */
+export function computeOneLinkRequestHash(params: {
+  oneLinkTemplate: string;
+  mediaSource: string;
+  campaignName: string;
+  channel?: string;
+  deepLinkValue?: string;
+  targetUser?: string;
+  adGroup?: string;
+  adName?: string;
+}): string {
+  const key = [
+    (params.oneLinkTemplate || '').trim().toLowerCase(),
+    (params.mediaSource || '').trim().toLowerCase(),
+    (params.campaignName || '').trim().toLowerCase(),
+    (params.channel || '').trim().toLowerCase(),
+    (params.deepLinkValue || '').trim().toLowerCase(),
+    (params.targetUser || '').trim().toLowerCase(),
+    (params.adGroup || '').trim().toLowerCase(),
+    (params.adName || '').trim().toLowerCase(),
+  ].join('|');
+
+  return crypto.createHash('sha256').update(key, 'utf8').digest('hex');
+}
+
