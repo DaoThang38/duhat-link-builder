@@ -7,3 +7,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+# Git Auto-Deploy Rule
+Whenever code changes are made and verified in this workspace, ALWAYS commit and push them immediately to GitHub (`git push origin main`) to trigger Netlify auto-deployment.
+
