@@ -380,7 +380,7 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
 
       {/* History Table */}
       <div className="overflow-hidden border border-[#deded7] rounded-[18px] bg-white">
-        <div className="hidden md:grid grid-cols-[90px_130px_170px_1fr_130px_140px] gap-4 items-center p-4 bg-[#20201c] text-white text-[11px] font-extrabold uppercase tracking-wider">
+        <div className="hidden md:grid grid-cols-[85px_120px_150px_1fr_135px_195px] gap-3 items-center p-4 bg-[#20201c] text-white text-[11px] font-extrabold uppercase tracking-wider">
           <span>Loại</span>
           <span>Người gửi</span>
           <span>Chiến dịch</span>
@@ -415,7 +415,7 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
                 key={item.id}
                 className="border-b border-[#deded7] last:border-0 hover:bg-[#fcfcf9] transition-colors"
               >
-                <div className="flex flex-col md:grid md:grid-cols-[90px_130px_170px_1fr_130px_140px] gap-2 md:gap-4 items-start md:items-center p-4 text-xs">
+                <div className="flex flex-col md:grid md:grid-cols-[85px_120px_150px_1fr_135px_195px] gap-2 md:gap-3 items-start md:items-center p-4 text-xs">
                   <div>
                     <span
                       className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
@@ -427,7 +427,6 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
                       {item.linkType}
                     </span>
                   </div>
-
 
                   <div>
                     <strong className="block font-bold text-[#20201c]">{item.createdByName}</strong>
@@ -477,12 +476,12 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
                     />
                   </div>
 
-                  <div className="flex items-center justify-start md:justify-end gap-1.5 w-full">
+                  <div className="flex items-center justify-start md:justify-end gap-1.5 w-full shrink-0">
                     {/* Toggle details expansion */}
                     <button
                       type="button"
                       onClick={() => setExpandedId(isExpanded ? null : item.id)}
-                      className="p-1.5 text-[#71716a] hover:text-[#20201c] hover:bg-[#deded7]/50 rounded-full transition-colors"
+                      className="p-1.5 text-[#71716a] hover:text-[#20201c] hover:bg-[#deded7]/50 rounded-full transition-colors shrink-0"
                       title="Xem chi tiết yêu cầu"
                     >
                       {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -492,13 +491,14 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
                     {item.linkType === 'ONELINK' && activeUser?.role === 'ADMIN' && (
                       <button
                         onClick={() => handleOpenUpdateModal(item)}
-                        className="btn primary text-[10px] min-h-[30px] px-2 py-0 bg-[#8a6200] hover:bg-[#6c4d00]"
+                        className="btn secondary text-[11px] min-h-[32px] px-2.5 bg-[#20201c] text-white hover:bg-[#3a3a33] border-[#20201c] shrink-0"
                         title="Cập nhật OneLink hoàn chỉnh (Dành cho Admin)"
                       >
-                        <Edit3 className="w-3 h-3" />
+                        <Edit3 className="w-3.5 h-3.5" />
                         <span>Sửa</span>
                       </button>
                     )}
+
 
 
                     {item.finalLink && (
