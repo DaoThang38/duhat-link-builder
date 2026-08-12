@@ -449,15 +449,21 @@ export default function HistoryTable({ currentUser }: HistoryTableProps) {
                         {item.finalLink}
                       </code>
                     ) : (
-                      <div className="text-[11px] text-[#8a6200] font-semibold italic flex items-center gap-1.5">
-                        <span>⏳ Đang chờ người phụ trách khởi tạo OneLink trên AppsFlyer</span>
+                      <div className="space-y-1 text-xs">
+                        <div className="text-[11px] text-[#8a6200] font-semibold italic">
+                          ⏳ Đang chờ người phụ trách khởi tạo OneLink trên AppsFlyer
+                        </div>
                         {item.desiredSlug && (
-                          <span className="not-italic bg-[#ebd217]/20 px-1.5 py-0.5 rounded text-[10px] font-mono text-[#20201c]">
-                            Slug: {item.desiredSlug}
-                          </span>
+                          <div className="flex items-center gap-1.5 pt-0.5">
+                            <span className="text-[10px] text-[#71716a] font-bold">Đuôi link đề xuất:</span>
+                            <code className="bg-[#fff4d1] text-[#8a6200] border border-[#edce67] px-2 py-0.5 rounded font-mono font-bold text-[11px] whitespace-nowrap">
+                              {item.desiredSlug}
+                            </code>
+                          </div>
                         )}
                       </div>
                     )}
+
                   </div>
 
                   <div className="space-y-1">
