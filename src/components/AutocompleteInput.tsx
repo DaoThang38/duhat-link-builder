@@ -140,30 +140,32 @@ export default function AutocompleteInput({
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder || `Nhập hoặc chọn ${label.toLowerCase()}...`}
-          className={`${isValueInvalidInStrict ? 'error' : ''} ${value ? 'pr-16' : 'pr-9'}`}
+          className={`${isValueInvalidInStrict ? 'error' : ''} ${value ? 'pr-14' : 'pr-8'}`}
         />
 
-        {value && (
+        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center space-x-1 z-10">
+          {value && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange('');
+              }}
+              className="text-[#a1a19a] hover:text-[#b42318] hover:bg-[#fff0ed] rounded-full border-0 bg-transparent cursor-pointer p-1 transition-colors flex items-center justify-center"
+              title="Xóa nhanh giá trị này"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onChange('');
-            }}
-            className="absolute right-9 top-1/2 -translate-y-1/2 text-[#a1a19a] hover:text-[#b42318] border-0 bg-transparent cursor-pointer p-1 transition-colors"
-            title="Xóa nhanh giá trị này"
+            onClick={() => setIsOpen(!isOpen)}
+            className="text-[#71716a] hover:text-[#20201c] border-0 bg-transparent cursor-pointer p-0.5 flex items-center justify-center"
           >
-            <X className="w-3.5 h-3.5" />
+            <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           </button>
-        )}
-
-        <button
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#71716a] hover:text-[#20201c] border-0 bg-transparent cursor-pointer"
-        >
-          <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-        </button>
+        </div>
       </div>
 
       {helpText && !isValueInvalidInStrict && <p className="duhat-help">{helpText}</p>}

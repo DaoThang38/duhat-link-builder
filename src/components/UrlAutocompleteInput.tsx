@@ -94,36 +94,38 @@ export default function UrlAutocompleteInput({
           }}
           onFocus={() => setIsOpen(true)}
           placeholder={placeholder || (linkType === 'ONELINK' ? 'https://duhat.onelink.me/abc1' : 'https://duhat.vn/landing-page')}
-          className={`w-full ${recentUrls.length > 0 ? (value ? 'pr-32' : 'pr-24') : (value ? 'pr-10' : '')}`}
+          className={`w-full ${recentUrls.length > 0 ? (value ? 'pr-[155px]' : 'pr-[125px]') : (value ? 'pr-9' : '')}`}
           autoComplete="url"
         />
 
-        {value && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onChange('');
-            }}
-            className={`absolute ${recentUrls.length > 0 ? 'right-28' : 'right-3'} top-1/2 -translate-y-1/2 text-[#a1a19a] hover:text-[#b42318] border-0 bg-transparent cursor-pointer p-1 transition-colors`}
-            title="Xóa nhanh URL"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        )}
+        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center space-x-1.5 z-10">
+          {value && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange('');
+              }}
+              className="text-[#a1a19a] hover:text-[#b42318] hover:bg-[#fff0ed] rounded-full border-0 bg-transparent cursor-pointer p-1 transition-colors flex items-center justify-center"
+              title="Xóa nhanh URL"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
 
-        {recentUrls.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setIsOpen(!isOpen)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#71716a] hover:text-[#20201c] border border-[#deded7] bg-[#f9f9f6] px-2.5 py-1 rounded-[8px] text-[10px] font-extrabold cursor-pointer flex items-center space-x-1 transition-colors hover:bg-[#fff3bd]"
-            title="Gợi ý URL đã dùng gần đây"
-          >
-            <History className="w-3 h-3 text-[#20201c]" />
-            <span>Đã dùng ({recentUrls.length})</span>
-            <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-          </button>
-        )}
+          {recentUrls.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setIsOpen(!isOpen)}
+              className="text-[#71716a] hover:text-[#20201c] border border-[#deded7] bg-[#f9f9f6] px-2.5 py-1 rounded-[8px] text-[10px] font-extrabold cursor-pointer flex items-center space-x-1 transition-colors hover:bg-[#fff3bd]"
+              title="Gợi ý URL đã dùng gần đây"
+            >
+              <History className="w-3 h-3 text-[#20201c]" />
+              <span>Đã dùng ({recentUrls.length})</span>
+              <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+          )}
+        </div>
       </div>
 
       {helpText && <p className="duhat-help">{helpText}</p>}
