@@ -379,7 +379,7 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
           <div className="space-y-5">
             {/* 4.1 OneLink Template */}
             <UrlAutocompleteInput
-              label="OneLink Template *"
+              label="OneLink Template"
               linkType="ONELINK"
               value={oneLinkTemplate}
               onChange={setOneLinkTemplate}
@@ -391,7 +391,7 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
             {/* 4.2 Nguồn & 4.3 Hình thức & 4.4 Tên chiến dịch */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <AutocompleteInput
-                label="Nguồn / Nơi đặt link *"
+                label="Nguồn / Nơi đặt link"
                 categoryType="media_source"
                 linkType="ONELINK"
                 value={mediaSource}
@@ -401,7 +401,7 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
                 helpText="Nơi link sẽ được phát hành (Tham số AppsFlyer: pid)."
               />
               <AutocompleteInput
-                label="Hình thức sử dụng *"
+                label="Hình thức sử dụng"
                 categoryType="channel"
                 linkType="ONELINK"
                 value={channel}
@@ -411,7 +411,7 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
                 helpText="Cách thức phân phối link (Tham số AppsFlyer: af_channel)."
               />
               <AutocompleteInput
-                label="Tên chiến dịch *"
+                label="Tên chiến dịch"
                 categoryType="campaign_name"
                 linkType="ONELINK"
                 value={campaignName}
@@ -502,7 +502,7 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
 
               {/* 4.10 Đích đến trong App */}
               <AutocompleteInput
-                label="Đích đến trong App *"
+                label="Đích đến trong App"
                 categoryType="deep_link_screen"
                 linkType="ONELINK"
                 value={deepLinkValue}

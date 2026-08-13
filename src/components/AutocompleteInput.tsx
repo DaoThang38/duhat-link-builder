@@ -120,9 +120,17 @@ export default function AutocompleteInput({
           {label} {required && <span className="req">*</span>}
         </label>
         {fieldMode === 'STRICT' ? (
-          <span className="mode-badge">Chỉ chọn trong danh sách</span>
+          <span
+            className="mode-badge cursor-help"
+            title="Chế độ 'Chỉ chọn trong danh sách': Trường này bắt buộc chọn đúng giá trị chuẩn sẵn có trong hệ thống."
+          >
+            Chỉ chọn trong danh sách
+          </span>
         ) : (
-          <span className="px-2 py-0.5 bg-[#eaf8ef] text-[#176b46] rounded-full text-[10px] font-extrabold">
+          <span
+            className="px-2 py-0.5 bg-[#eaf8ef] text-[#176b46] rounded-full text-[10px] font-extrabold cursor-help transition-colors hover:bg-[#d4f2de]"
+            title="Chế độ 'Điền tự do': Trường này cho phép bạn tự nhập giá trị tùy chỉnh hoặc chọn từ danh mục gợi ý."
+          >
             Điền tự do
           </span>
         )}

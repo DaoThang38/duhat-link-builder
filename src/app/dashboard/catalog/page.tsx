@@ -342,6 +342,11 @@ export default function CatalogPage() {
                     <button
                       type="button"
                       onClick={() => handleToggleFieldMode(cat.key)}
+                      title={
+                        currentMode === 'STRICT'
+                          ? "Chế độ 'Chỉ chọn trong danh sách': Bắt buộc người dùng phải chọn đúng giá trị chuẩn. Click để chuyển sang 'Điền tự do'."
+                          : "Chế độ 'Điền tự do': Cho phép người dùng tự do gõ giá trị tùy chỉnh hoặc chọn gợi ý. Click để chuyển sang 'Chỉ chọn trong danh sách'."
+                      }
                       className={`mt-1 text-[10px] px-2.5 py-0.5 rounded-full font-extrabold uppercase border-0 cursor-pointer flex items-center gap-1 transition-all ${
                         currentMode === 'STRICT'
                           ? 'bg-[#fff3bd] text-[#725000] hover:bg-[#ffe895]'
