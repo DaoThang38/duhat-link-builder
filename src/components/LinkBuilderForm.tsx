@@ -663,14 +663,54 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
               <span className="duhat-badge yellow text-[10px]">Mới tạo - Chờ xử lý</span>
             </div>
 
+            {/* Template */}
+            <div className="text-[#20201c] pb-2 border-b border-[#edce67]/30 flex flex-wrap items-center gap-1.5">
+              <span className="text-[#71716a] font-medium">Template OneLink:</span>
+              <strong className="font-mono text-[#8a6200] break-all">{oneLinkTemplate || '—'}</strong>
+            </div>
+
+            {/* Main Form Fields Grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-[#20201c]">
               <div><span className="text-[#71716a]">Nguồn đặt link:</span> <strong>{mediaSource || '—'}</strong></div>
               <div><span className="text-[#71716a]">Hình thức:</span> <strong>{channel || '—'}</strong></div>
               <div><span className="text-[#71716a]">Tên chiến dịch:</span> <strong>{campaignName || '—'}</strong></div>
+              
+              <div><span className="text-[#71716a]">Mã quản lý nội bộ:</span> <strong>{campaignId || '—'}</strong></div>
+              <div><span className="text-[#71716a]">Nhóm QC (Ad Set):</span> <strong>{adGroup || '—'}</strong></div>
+              <div><span className="text-[#71716a]">Mẫu QC (Ad):</span> <strong>{adName || '—'}</strong></div>
+
               <div><span className="text-[#71716a]">Khách hàng:</span> <strong>{targetUserLabel}</strong></div>
               <div><span className="text-[#71716a]">Đích đến App:</span> <strong>{deepLinkValue || '—'}</strong></div>
               <div><span className="text-[#71716a]">Đuôi mong muốn:</span> <code className="bg-[#ebd217]/20 px-1 rounded font-mono">{desiredSlug || 'Tự động'}</code></div>
             </div>
+
+            {/* Note & Social Preview Details */}
+            {(note || enableSocialPreview) ? (
+              <div className="pt-2 border-t border-[#edce67]/40 space-y-2">
+                {note && (
+                  <div>
+                    <span className="text-[#71716a]">Ghi chú / Thông tin phụ: </span>
+                    <span className="italic text-[#20201c]">{note}</span>
+                  </div>
+                )}
+                {enableSocialPreview ? (
+                  <div className="p-2.5 bg-white/80 rounded-[12px] border border-[#edce67]/50 space-y-1 text-[11px]">
+                    <div className="font-extrabold text-[#8a6200]">Hiển thị MXH (Social Preview): <span className="font-semibold text-[#20201c]">Có yêu cầu riêng</span></div>
+                    {socialTitle && <div><span className="text-[#71716a]">Tiêu đề:</span> <strong>{socialTitle}</strong></div>}
+                    {socialDescription && <div><span className="text-[#71716a]">Mô tả:</span> <strong>{socialDescription}</strong></div>}
+                    {socialImageUrl && <div><span className="text-[#71716a]">Link Ảnh:</span> <strong className="font-mono break-all">{socialImageUrl}</strong></div>}
+                  </div>
+                ) : (
+                  <div className="text-[#71716a]">
+                    <span>Hiển thị MXH (Social Preview): </span><span className="font-medium text-[#20201c]">Mặc định</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="pt-2 border-t border-[#edce67]/30 text-[#71716a]">
+                <span>Hiển thị MXH (Social Preview): </span><span className="font-medium text-[#20201c]">Mặc định</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -764,6 +804,17 @@ export default function LinkBuilderForm({ currentUser, onLinkCreated }: LinkBuil
         creatorName={currentUser.fullName}
         targetUserLabel={targetUserLabel}
         deepLinkScreenLabel={deepLinkValue}
+        campaignId={campaignId}
+        adGroup={adGroup}
+        adName={adName}
+        desiredSlug={desiredSlug}
+        note={note}
+        socialPreview={enableSocialPreview ? {
+          enabled: true,
+          title: socialTitle,
+          description: socialDescription,
+          imageUrl: socialImageUrl,
+        } : undefined}
       />
     </div>
   );

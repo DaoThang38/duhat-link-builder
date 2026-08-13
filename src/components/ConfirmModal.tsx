@@ -18,6 +18,17 @@ interface ConfirmModalProps {
   creatorName: string;
   targetUserLabel?: string;
   deepLinkScreenLabel?: string;
+  campaignId?: string;
+  adGroup?: string;
+  adName?: string;
+  desiredSlug?: string;
+  note?: string;
+  socialPreview?: {
+    enabled: boolean;
+    title?: string;
+    description?: string;
+    imageUrl?: string;
+  };
 }
 
 export default function ConfirmModal({
@@ -34,6 +45,12 @@ export default function ConfirmModal({
   creatorName,
   targetUserLabel,
   deepLinkScreenLabel,
+  campaignId,
+  adGroup,
+  adName,
+  desiredSlug,
+  note,
+  socialPreview,
 }: ConfirmModalProps) {
   if (!isOpen) return null;
 
@@ -65,7 +82,7 @@ export default function ConfirmModal({
         </div>
 
         {/* Summary Box */}
-        <div className="my-5 border border-[#deded7] rounded-[14px] overflow-hidden bg-white">
+        <div className="my-5 border border-[#deded7] rounded-[14px] overflow-hidden bg-white max-h-[60vh] overflow-y-auto">
           <div className="grid grid-cols-[130px_1fr] gap-2.5 p-3 border-b border-[#deded7] text-xs">
             <b className="text-[#71716a] font-medium">Loại thao tác:</b>
             <strong className="text-[#20201c] font-bold">
@@ -92,6 +109,24 @@ export default function ConfirmModal({
 
           {linkType === 'ONELINK' && (
             <>
+              {campaignId && (
+                <div className="grid grid-cols-[130px_1fr] gap-2.5 p-3 border-b border-[#deded7] text-xs">
+                  <b className="text-[#71716a] font-medium">Mã quản lý:</b>
+                  <strong className="text-[#20201c]">{campaignId}</strong>
+                </div>
+              )}
+              {adGroup && (
+                <div className="grid grid-cols-[130px_1fr] gap-2.5 p-3 border-b border-[#deded7] text-xs">
+                  <b className="text-[#71716a] font-medium">Nhóm QC (Ad Set):</b>
+                  <strong className="text-[#20201c]">{adGroup}</strong>
+                </div>
+              )}
+              {adName && (
+                <div className="grid grid-cols-[130px_1fr] gap-2.5 p-3 border-b border-[#deded7] text-xs">
+                  <b className="text-[#71716a] font-medium">Mẫu QC (Ad):</b>
+                  <strong className="text-[#20201c]">{adName}</strong>
+                </div>
+              )}
               {targetUserLabel && (
                 <div className="grid grid-cols-[130px_1fr] gap-2.5 p-3 border-b border-[#deded7] text-xs">
                   <b className="text-[#71716a] font-medium">Khách hàng:</b>
@@ -102,6 +137,35 @@ export default function ConfirmModal({
                 <div className="grid grid-cols-[130px_1fr] gap-2.5 p-3 border-b border-[#deded7] text-xs">
                   <b className="text-[#71716a] font-medium">Đích đến App:</b>
                   <strong className="text-[#20201c]">{deepLinkScreenLabel}</strong>
+                </div>
+              )}
+              {desiredSlug && (
+                <div className="grid grid-cols-[130px_1fr] gap-2.5 p-3 border-b border-[#deded7] text-xs">
+                  <b className="text-[#71716a] font-medium">Đuôi mong muốn:</b>
+                  <code className="bg-[#ebd217]/20 px-1 py-0.5 rounded font-mono text-[#20201c]">{desiredSlug}</code>
+                </div>
+              )}
+              {note && (
+                <div className="grid grid-cols-[130px_1fr] gap-2.5 p-3 border-b border-[#deded7] text-xs">
+                  <b className="text-[#71716a] font-medium">Ghi chú:</b>
+                  <span className="italic text-[#20201c]">{note}</span>
+                </div>
+              )}
+              {socialPreview && (
+                <div className="grid grid-cols-[130px_1fr] gap-2.5 p-3 border-b border-[#deded7] text-xs">
+                  <b className="text-[#71716a] font-medium">Social Preview:</b>
+                  <div className="space-y-1">
+                    <span className="font-bold text-[#8a6200]">
+                      {socialPreview.enabled ? 'Có yêu cầu riêng' : 'Mặc định'}
+                    </span>
+                    {socialPreview.enabled && (
+                      <div className="text-[11px] text-[#71716a] space-y-0.5 pt-1">
+                        {socialPreview.title && <div>Tiêu đề: <span className="text-[#20201c] font-medium">{socialPreview.title}</span></div>}
+                        {socialPreview.description && <div>Mô tả: <span className="text-[#20201c] font-medium">{socialPreview.description}</span></div>}
+                        {socialPreview.imageUrl && <div>Ảnh: <span className="text-[#20201c] font-mono break-all">{socialPreview.imageUrl}</span></div>}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </>
